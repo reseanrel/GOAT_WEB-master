@@ -8,6 +8,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
+import bcrypt
 
 # Load environment variables from .env file
 load_dotenv()
@@ -15,24 +16,23 @@ load_dotenv()
 
 
 # Database connection with connection pooling
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from psycopg2 import pool
+import mysql.connector
+from mysql.connector import pooling
+from mysql.connector import Error
 
-# Get Supabase connection URL from environment
-database_url = os.getenv('DATABASE_URL')
-
-if not database_url:
-    raise ValueError("DATABASE_URL environment variable is not set. Please add your Supabase connection URL to the .env file.")
+# MySQL connection configuration
+db_config = {
+    'host': 'localhost',
+    'database': 'pila_pets',
+    'user': 'root',
+    'password': '0413'  # MySQL root password
+}
 
 # Create connection pool for better performance
-import psycopg2
-from psycopg2.extras import RealDictCursor
-from psycopg2 import pool
-db_pool = pool.SimpleConnectionPool(
-    minconn=1,
-    maxconn=10,  # Adjust based on your needs
-    dsn=database_url
+db_pool = pooling.MySQLConnectionPool(
+    pool_name="pila_pool",
+    pool_size=10,  # Adjust based on your needs
+    **db_config
 )
 
 
@@ -41,14 +41,14 @@ def get_cursor():
     """Get a database cursor from the connection pool"""
     global db_pool
     try:
-        conn = db_pool.getconn()
-        if conn.closed:
+        conn = db_pool.get_connection()
+        if not conn.is_connected():
             # Return bad connection to pool and get a new one
-            db_pool.putconn(conn, close=True)
-            conn = db_pool.getconn()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+            conn.close()
+            conn = db_pool.get_connection()
+        cursor = conn.cursor(dictionary=True)
         return cursor, conn
-    except Exception as e:
+    except Error as e:
         print(f"[ERROR] Failed to get database connection: {e}")
         raise
 
@@ -59,11 +59,11 @@ class DatabaseConnection:
         self.cursor = None
 
     def __enter__(self):
-        self.conn = db_pool.getconn()
-        if self.conn.closed:
-            db_pool.putconn(self.conn, close=True)
-            self.conn = db_pool.getconn()
-        self.cursor = self.conn.cursor(cursor_factory=RealDictCursor)
+        self.conn = db_pool.get_connection()
+        if not self.conn.is_connected():
+            self.conn.close()
+            self.conn = db_pool.get_connection()
+        self.cursor = self.conn.cursor(dictionary=True)
         return self.cursor, self.conn
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -73,10 +73,10 @@ class DatabaseConnection:
                     self.conn.rollback()
                 else:
                     self.conn.commit()
-            except Exception as e:
+            except Error as e:
                 print(f"[ERROR] Failed to commit/rollback connection: {e}")
             finally:
-                db_pool.putconn(self.conn)
+                self.conn.close()
 
 app = Flask(__name__)
 
@@ -92,15 +92,36 @@ def ensure_schema():
 
     with DatabaseConnection() as (cursor, conn):
         try:
-            cursor.execute('ALTER TABLE pets ADD COLUMN IF NOT EXISTS archived BOOLEAN DEFAULT FALSE')
-            cursor.execute('ALTER TABLE pets ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP NULL')
-            cursor.execute('ALTER TABLE pets ADD COLUMN IF NOT EXISTS deceased BOOLEAN DEFAULT FALSE')
-            cursor.execute('ALTER TABLE pets ADD COLUMN IF NOT EXISTS deceased_at TIMESTAMP NULL')
-            cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS archived BOOLEAN DEFAULT FALSE')
-            cursor.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP NULL')
+            # Check and add columns only if they don't exist
+            # For pets table
+            cursor.execute("SHOW COLUMNS FROM pets LIKE 'archived'")
+            if not cursor.fetchone():
+                cursor.execute('ALTER TABLE pets ADD COLUMN archived TINYINT(1) DEFAULT 0')
+
+            cursor.execute("SHOW COLUMNS FROM pets LIKE 'archived_at'")
+            if not cursor.fetchone():
+                cursor.execute('ALTER TABLE pets ADD COLUMN archived_at TIMESTAMP NULL')
+
+            cursor.execute("SHOW COLUMNS FROM pets LIKE 'deceased'")
+            if not cursor.fetchone():
+                cursor.execute('ALTER TABLE pets ADD COLUMN deceased TINYINT(1) DEFAULT 0')
+
+            cursor.execute("SHOW COLUMNS FROM pets LIKE 'deceased_at'")
+            if not cursor.fetchone():
+                cursor.execute('ALTER TABLE pets ADD COLUMN deceased_at TIMESTAMP NULL')
+
+            # For users table
+            cursor.execute("SHOW COLUMNS FROM users LIKE 'archived'")
+            if not cursor.fetchone():
+                cursor.execute('ALTER TABLE users ADD COLUMN archived TINYINT(1) DEFAULT 0')
+
+            cursor.execute("SHOW COLUMNS FROM users LIKE 'archived_at'")
+            if not cursor.fetchone():
+                cursor.execute('ALTER TABLE users ADD COLUMN archived_at TIMESTAMP NULL')
+
             print("Schema columns ensured")
             schema_checked = True
-        except Exception as e:
+        except Error as e:
             print(f"Could not add schema columns: {e}")
             raise
 app.config['SECRET_KEY'] = 'pila-pets-week1-secret-key'
@@ -129,6 +150,18 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def hash_password(password):
+    """Hash a password using bcrypt"""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(plain_password, hashed_password):
+    """Verify a password against its hash"""
+    try:
+        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    except:
+        # If bcrypt verification fails, fall back to plain text comparison
+        return plain_password == hashed_password
 
 def send_verification_email(user_email, verification_code):
     """Send verification email FROM Gmail TO user's email"""
@@ -244,7 +277,7 @@ def login():
                 'age': 30
             }
 
-        if user and user['password'] == password:
+        if user and verify_password(password, user['password']):
             # Check if user is archived
             if user.get('archived', False):
                 flash('This account has been archived and cannot be used to login. Please contact administration.', 'error')
@@ -361,6 +394,9 @@ def verify_email():
 
         if entered_code == pending_data['verification_code']:
             try:
+                # Hash the password before storing
+                hashed_password = hash_password(pending_data['password'])
+
                 # Insert new user into MySQL
                 cursor, conn = get_cursor()
                 cursor.execute("""
@@ -372,11 +408,11 @@ def verify_email():
                     pending_data['contact_number'],
                     pending_data['address'],
                     pending_data['email'],
-                    pending_data['password'],
+                    hashed_password,
                     False
                 ))
                 conn.commit()
-                db_pool.putconn(conn)
+                conn.close()
 
                 # Clear pending registration
                 session.pop('pending_registration', None)
@@ -384,9 +420,9 @@ def verify_email():
                 flash('Email verified successfully! You can now login.', 'success')
                 return redirect(url_for('login'))
 
-            except Exception as e:
+            except Error as e:
                 print("[ERROR] ERROR:", e)
-                db.rollback()
+                conn.rollback()
                 flash(f'An error occurred during account creation: {str(e)}. Please try again.', 'error')
         else:
             flash('Invalid verification code. Please try again.', 'error')
@@ -456,7 +492,7 @@ def get_user_by_id(user_id):
     cursor, conn = get_cursor()
     cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
     result = cursor.fetchone()
-    db_pool.putconn(conn)
+    conn.close()
     return result
 
 # User Routes
@@ -554,7 +590,7 @@ def register_pet():
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
         """, (name, category, pet_type, age, color, gender, session['user_id'], photo_filename if photo_filename else None, available_for_adoption))
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         flash(f'Pet "{name}" registered successfully and is pending admin approval!', 'success')
         return redirect(url_for('user_dashboard'))
@@ -698,14 +734,14 @@ def vaccinations(pet_id):
     pet = cursor.fetchone()
 
     if not pet:
-        db_pool.putconn(conn)
+        conn.close()
         flash('Access denied', 'error')
         return redirect(url_for('user_dashboard'))
 
     # Get vaccinations from database (stored in medical_records table with record_type = 'Vaccination')
     cursor.execute("SELECT * FROM medical_records WHERE pet_id = %s AND record_type = 'Vaccination' ORDER BY record_date DESC", (pet_id,))
     vaccinations = cursor.fetchall()
-    db_pool.putconn(conn)
+    conn.close()
 
     return render_template('user/vaccination.html', pet=pet, vaccinations=vaccinations)
 
@@ -1025,7 +1061,7 @@ def report_lost_confirmation(pet_id):
     pet = cursor.fetchone()
 
     if not pet:
-        db_pool.putconn(conn)
+        conn.close()
         flash('Pet not found or access denied', 'error')
         return redirect(url_for('user_dashboard'))
 
@@ -1037,7 +1073,7 @@ def report_lost_confirmation(pet_id):
     """, (pet_id, session['user_id']))
     comment_result = cursor.fetchone()
     comment = comment_result['comment'] if comment_result else 'No details provided'
-    db_pool.putconn(conn)
+    conn.close()
 
     return render_template('user/report_lost_pet.html', pet=pet, comment=comment, datetime=datetime)
 
@@ -1174,7 +1210,7 @@ def adoption():
         adoption_pets = cursor.fetchall()
 
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         # Calculate pagination info
         total_pages = (total_count + per_page - 1) // per_page
@@ -1190,7 +1226,7 @@ def adoption():
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         raise
 
 @app.route('/express-adoption-interest/<int:pet_id>', methods=['POST'])
@@ -1208,13 +1244,13 @@ def express_adoption_interest(pet_id):
 
         if not pet:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Pet not available for adoption'})
 
         # Prevent users from expressing interest in their own pets
         if pet['owner_id'] == session['user_id']:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'You cannot express interest in adopting your own pet'})
 
         message = request.form.get('message', '').strip()
@@ -1222,7 +1258,7 @@ def express_adoption_interest(pet_id):
 
         if not message:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Please provide a message'})
 
         # Get adopter info
@@ -1236,7 +1272,7 @@ def express_adoption_interest(pet_id):
 
         if not owner:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Owner information not found'})
 
         # Insert adoption interest as comment
@@ -1351,13 +1387,13 @@ def express_adoption_interest(pet_id):
         except Exception as e:
             print(f"[ERROR] Error sending adoption interest email: {str(e)}")
 
-        db_pool.putconn(conn)
+        conn.close()
         return jsonify({'success': True, 'message': 'Interest submitted successfully'})
 
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         print(f"[ERROR] Error in express_adoption_interest: {str(e)}")
         return jsonify({'success': False, 'message': 'An error occurred. Please try again.'})
 
@@ -1501,7 +1537,7 @@ def edit_profile():
                 WHERE id = %s
             """, (full_name, age, contact_number, address, session['user_id']))
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
 
             # Update session data
             session['user_name'] = full_name
@@ -1516,7 +1552,7 @@ def edit_profile():
             print("[ERROR] ERROR:", e)
             if 'conn' in locals():
                 conn.rollback()
-                db_pool.putconn(conn)
+                conn.close()
             flash('An error occurred while updating your profile. Please try again.', 'error')
 
     # Get current user data
@@ -1525,12 +1561,12 @@ def edit_profile():
         cursor.execute("SELECT * FROM users WHERE id = %s", (session['user_id'],))
         user = cursor.fetchone()
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
     except Exception as e:
         print("[ERROR] ERROR:", e)
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         flash('An error occurred while loading your profile. Please try again.', 'error')
         return redirect(url_for('user_dashboard'))
 
@@ -1550,7 +1586,7 @@ def edit_pet(pet_id):
 
         if not pet:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             flash('Pet not found or access denied', 'error')
             return redirect(url_for('user_dashboard'))
 
@@ -1624,7 +1660,7 @@ def edit_pet(pet_id):
                 flash(f'Pet "{name}" updated successfully!', 'success')
                 # Redirect to pet details page after successful update
                 conn.commit()
-                db_pool.putconn(conn)
+                conn.close()
                 return redirect(url_for('pet_details', pet_id=pet_id))
 
             except Exception as e:
@@ -1633,13 +1669,13 @@ def edit_pet(pet_id):
                 flash('An error occurred while updating the pet. Please try again.', 'error')
 
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
         return render_template('user/edit_pet.html', pet=pet, datetime=datetime)
 
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         print(f"[ERROR] Error in edit_pet: {str(e)}")
         flash('An error occurred while loading the pet. Please try again.', 'error')
         return redirect(url_for('user_dashboard'))
@@ -1689,12 +1725,12 @@ def toggle_pet_adoption(pet_id):
 
         if not pet:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Pet not found or access denied'})
 
         if pet['deceased']:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Cannot change adoption status for a deceased pet'})
 
         data = request.get_json()
@@ -1702,14 +1738,14 @@ def toggle_pet_adoption(pet_id):
 
         cursor.execute("UPDATE pets SET available_for_adoption = %s WHERE id = %s", (available_for_adoption, pet_id))
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         return jsonify({'success': True, 'message': f'Pet {"put up for adoption" if available_for_adoption else "removed from adoption"} successfully'})
     except Exception as e:
         print(f"[ERROR] Error toggling pet adoption: {e}")
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         return jsonify({'success': False, 'message': 'An error occurred while updating adoption status.'})
 
 @app.route('/user/add-medical-record/<int:pet_id>', methods=['POST'])
@@ -1786,16 +1822,16 @@ def admin_dashboard():
         cursor.execute("SELECT COUNT(*) AS total FROM users WHERE archived = FALSE")
         total_users = cursor.fetchone()['total']
 
-        # Optimized monthly registrations query - use date truncation instead of TO_CHAR for better performance
+        # Optimized monthly registrations query - MySQL compatible
         cursor.execute("""
             SELECT
-                DATE_TRUNC('month', registered_on) as month,
+                DATE_FORMAT(registered_on, '%Y-%m-01') as month,
                 COUNT(*) as count
             FROM pets
             WHERE archived = FALSE AND status = 'approved'
-                AND registered_on >= CURRENT_DATE - INTERVAL '12 months'
-            GROUP BY DATE_TRUNC('month', registered_on)
-            ORDER BY DATE_TRUNC('month', registered_on)
+                AND registered_on >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+            GROUP BY DATE_FORMAT(registered_on, '%Y-%m-01')
+            ORDER BY DATE_FORMAT(registered_on, '%Y-%m-01')
         """)
         monthly_registrations = cursor.fetchall()
 
@@ -1824,7 +1860,7 @@ def admin_dashboard():
         recent_pets_with_owners = cursor.fetchall()
 
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         return render_template('admin/dashboard.html',
                               total_pets=pet_stats['total_pets'],
@@ -1839,7 +1875,7 @@ def admin_dashboard():
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         raise
 
 @app.route('/admin/pets')
@@ -1936,7 +1972,7 @@ def admin_pets():
     finally:
         # Always return the connection to the pool if it was obtained
         if conn:
-            db_pool.putconn(conn)
+            conn.close()
 
 @app.route('/admin/users')
 @login_required
@@ -1957,13 +1993,13 @@ def admin_users():
         users_with_pet_count = cursor.fetchall()
 
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         return render_template('admin/users.html', users=users_with_pet_count)
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         raise
 
 
@@ -1986,7 +2022,7 @@ def archive_pet(pet_id):
 
         if not pet:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Pet not found'})
 
         pet_name = pet['name']
@@ -1996,12 +2032,12 @@ def archive_pet(pet_id):
         # Archive pet and set archived timestamp
         cursor.execute("UPDATE pets SET archived = TRUE, archived_at = NOW() WHERE id = %s", (pet_id,))
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
     except Exception as e:
         print(f"Error archiving pet: {e}")
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         return jsonify({'success': False, 'message': f'Database error: {str(e)}'})
 
     # Send email notification to pet owner
@@ -2088,7 +2124,7 @@ def bulk_update_pets():
 
         if not pet_ids or not action:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Invalid request data'})
 
         if action == 'mark_lost':
@@ -2098,21 +2134,21 @@ def bulk_update_pets():
         elif action == 'change_category':
             if not value or value not in ['Dog', 'Cat', 'Other']:
                 conn.commit()
-                db_pool.putconn(conn)
+                conn.close()
                 return jsonify({'success': False, 'message': 'Invalid category'})
             cursor.execute(f"UPDATE pets SET category = %s WHERE id IN ({','.join(['%s'] * len(pet_ids))})", [value] + pet_ids)
         else:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Invalid action'})
 
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
         return jsonify({'success': True, 'message': f'Bulk update completed successfully'})
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         raise
 
 @app.route('/admin/archive-user/<int:user_id>', methods=['POST'])
@@ -2128,18 +2164,18 @@ def archive_user(user_id):
 
         if not user:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'User not found'})
 
         if user['is_admin']:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Cannot archive admin user'})
 
         # Archive user and set archived timestamp
         cursor.execute("UPDATE users SET archived = TRUE, archived_at = NOW() WHERE id = %s", (user_id,))
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         flash(f'User "{user["full_name"]}" has been archived successfully', 'success')
         return jsonify({'success': True, 'message': 'User archived successfully'})
@@ -2147,7 +2183,7 @@ def archive_user(user_id):
         print(f"Error archiving user: {e}")
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         return jsonify({'success': False, 'message': f'Database error: {str(e)}'})
 
 @app.route('/admin/archived-users')
@@ -2201,13 +2237,13 @@ def admin_archived():
         archived_users = cursor.fetchall()
 
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         return render_template('admin/archived.html', pets=archived_pets, users=archived_users, datetime=datetime)
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         raise
 
 @app.route('/admin/archived-pets')
@@ -2233,13 +2269,13 @@ def admin_archived_pets():
             pet['display_id'] = index
 
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         return render_template('admin/archived_pets.html', pets=archived_pets, datetime=datetime)
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         raise
 
 @app.route('/admin/restore-user/<int:user_id>', methods=['POST'])
@@ -2255,20 +2291,20 @@ def restore_user(user_id):
 
         if not user:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'User not found'})
 
         # Restore user
         cursor.execute("UPDATE users SET archived = FALSE, archived_at = NULL WHERE id = %s", (user_id,))
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         flash(f'User "{user["full_name"]}" has been restored successfully', 'success')
         return jsonify({'success': True, 'message': 'User restored successfully'})
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         raise
 
 @app.route('/admin/restore-pet/<int:pet_id>', methods=['POST'])
@@ -2329,7 +2365,7 @@ def admin_lost_pets():
         recent_reports = cursor.fetchone()['total']
 
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         return render_template('admin/lost_pets.html',
                               lost_pets=lost_pets,
@@ -2339,7 +2375,7 @@ def admin_lost_pets():
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         raise
 
 @app.route('/admin/mark-pet-found/<int:pet_id>', methods=['POST'])
@@ -2484,7 +2520,7 @@ def admin_reply_to_lost_pet(pet_id):
         pet_info = cursor.fetchone()
 
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         if pet_info:
             pet_name = pet_info['name']
@@ -2568,7 +2604,7 @@ def admin_reply_to_lost_pet(pet_id):
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         print(f"[ERROR] Error in admin_reply_to_lost_pet: {str(e)}")
         return jsonify({'success': False, 'message': 'An error occurred. Please try again.'})
 
@@ -2588,13 +2624,13 @@ def delete_comment(comment_id):
     try:
         cursor.execute("DELETE FROM comments WHERE id = %s", (comment_id,))
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         return jsonify({'success': True})
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         raise
 
 @app.route('/admin/approve-pet/<int:pet_id>', methods=['POST'])
@@ -2608,17 +2644,17 @@ def approve_pet(pet_id):
 
         if not pet:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Pet not found'})
 
         if pet['status'] != 'pending':
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Pet is not pending approval'})
 
         if pet['deceased']:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Cannot approve a deceased pet'})
 
         # Update pet status to approved
@@ -2715,14 +2751,14 @@ def approve_pet(pet_id):
                 print(f"[ERROR] Failed to send pet approval email: {e}")
 
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         flash(f'Pet "{pet["name"]}" has been approved successfully', 'success')
         return jsonify({'success': True, 'message': 'Pet approved successfully'})
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         raise
 
 @app.route('/admin/reject-pet/<int:pet_id>', methods=['POST'])
@@ -2736,7 +2772,7 @@ def reject_pet(pet_id):
 
         if not rejection_reason:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Please provide a reason for rejection'})
 
         cursor.execute("SELECT * FROM pets WHERE id = %s", (pet_id,))
@@ -2744,12 +2780,12 @@ def reject_pet(pet_id):
 
         if not pet:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Pet not found'})
 
         if pet['status'] != 'pending':
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             return jsonify({'success': False, 'message': 'Pet is not pending approval'})
 
         # Update pet status to rejected and store rejection reason
@@ -2832,14 +2868,14 @@ def reject_pet(pet_id):
                 print(f"[ERROR] Failed to send pet rejection email: {e}")
 
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         flash(f'Pet "{pet["name"]}" has been rejected', 'warning')
         return jsonify({'success': True, 'message': 'Pet rejected successfully'})
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         raise
 
 @app.route('/admin/adoption')
@@ -2899,7 +2935,7 @@ def admin_adoption():
     finally:
         # Always return the connection to the pool if it was obtained
         if conn:
-            db_pool.putconn(conn)
+            conn.close()
 
 @app.route('/admin/pet/<int:pet_id>')
 @admin_required
@@ -2919,7 +2955,7 @@ def admin_pet_details(pet_id):
 
         if not pet:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             flash('Pet not found', 'error')
             return redirect(url_for('admin_pets'))
 
@@ -2936,13 +2972,13 @@ def admin_pet_details(pet_id):
         }
 
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         return render_template('admin/pet_details.html', pet=pet, owner=owner, medical_records=pet_medical_records, datetime=datetime)
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         raise
 
 @app.route('/admin/pet/<int:pet_id>/medical-records')
@@ -2963,7 +2999,7 @@ def admin_pet_medical_records(pet_id):
 
         if not pet:
             conn.commit()
-            db_pool.putconn(conn)
+            conn.close()
             flash('Pet not found', 'error')
             return redirect(url_for('admin_pets'))
 
@@ -2972,13 +3008,13 @@ def admin_pet_medical_records(pet_id):
         pet_medical_records = cursor.fetchall()
 
         conn.commit()
-        db_pool.putconn(conn)
+        conn.close()
 
         return render_template('admin/pet_medical_records.html', pet=pet, medical_records=pet_medical_records)
     except Exception as e:
         if 'conn' in locals():
             conn.rollback()
-            db_pool.putconn(conn)
+            conn.close()
         raise
 
 @app.route('/admin/pending-pets')
@@ -3038,7 +3074,7 @@ def admin_pending_pets():
     finally:
         # Always return the connection to the pool if it was obtained
         if conn:
-            db_pool.putconn(conn)
+            conn.close()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port = 5000, debug=True)
