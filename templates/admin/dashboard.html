@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Burger Menu Button (Mobile) -->
+    <!-- Removed burger menu button to keep sidebar always visible -->
+
+    <div class="row g-0">
+        {% include "admin/sidebar.html" %}
+
+        <!-- Main Content -->
+        <div class="col-md-10 main-content-wrapper">
+            <div class="main-content">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h3 class="mb-2">Admin Dashboard</h3>
+                        <p class="text-muted mb-0">Welcome back! Here's an overview of your pet registration system.</p>
+                    </div>
+                    <div class="text-end">
+                        <h6 class="mb-1">{{ session.user_name }}</h6>
+                        <span class="badge" style="background: linear-gradient(135deg, var(--danger-color), #dc2626); color: white;">Administrator</span>
+                    </div>
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="row g-4 mb-3">
+                    <div class="col-xl-2 col-lg-4 col-md-6">
+                        <div class="stats-card">
+                            <h6><i class="fas fa-paw"></i>Total Pets</h6>
+                            <h3 style="color: var(--primary-color);">{{ total_pets }}</h3>
+                            <small>Registered Pets</small>
+                        </div>
+                    </div>
+                    <div class="col-xl-2 col-lg-4 col-md-6">
+                        <div class="stats-card">
+                            <h6><i class="fas fa-exclamation-triangle"></i>Lost Pets</h6>
+                            <h3 style="color: var(--danger-color);">{{ lost_pets_count }}</h3>
+                            <small>Reported Lost</small>
+                        </div>
+                    </div>
+                    <div class="col-xl-2 col-lg-4 col-md-6">
+                        <div class="stats-card">
+                            <h6><i class="fas fa-clock"></i>Pending</h6>
+                            <h3 style="color: var(--warning-color);">{{ pending_pets_count }}</h3>
+                            <small>Awaiting Approval</small>
+                        </div>
+                    </div>
+                    <div class="col-xl-2 col-lg-4 col-md-6">
+                        <div class="stats-card">
+                            <h6><i class="fas fa-heart"></i>Adoption</h6>
+                            <h3 style="color: var(--secondary-color);">{{ adoption_count }}</h3>
+                            <small>Available for Adoption</small>
+                        </div>
+                    </div>
+                    <div class="col-xl-2 col-lg-4 col-md-6">
+                        <div class="stats-card">
+                            <h6><i class="fas fa-users"></i>Users</h6>
+                            <h3 style="color: var(--info-color);">{{ total_users }}</h3>
+                            <small>Total Registered</small>
+                        </div>
+                    </div>
+                    <div class="col-xl-2 col-lg-4 col-md-6">
+                        <div class="stats-card">
+                            <h6><i class="fas fa-comments"></i>Comments</h6>
+                            <h3 style="color: var(--gray-600);">{{ new_comments_count }}</h3>
+                            <small>Total Comments</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics Charts -->
+                <div class="row g-4 mb-3">
+                    <div class="col-lg-8">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Pet Registrations (Last 12 Months)</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="registrationChart" style="max-height: 400px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Pet Types Distribution</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="petTypeChart" style="max-height: 400px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden data for charts -->
+                <script type="application/json" id="chartData">
+                {
+                    "monthlyRegistrations": {{ monthly_registrations | tojson }},
+                    "petTypeDistribution": {{ pet_type_distribution | tojson }}
+                }
+                </script>
+
+                <!-- Recent Registered Pets -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1"><i class="fas fa-paw me-2"></i>Recent Registered Pets</h5>
+                            <p class="text-muted mb-0 small">Latest pet registrations in the system</p>
+                        </div>
+                        <a href="{{ url_for('admin_pets') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i>View All
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if pets %}
+                            <div class="table-responsive">
+                                <table class="table mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Pet Name</th>
+                                            <th>Category</th>
+                                            <th>Type</th>
+                                            <th>Age</th>
+                                            <th>Owner</th>
+                                            <th>Registered</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for pet in pets %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-paw text-primary me-2"></i>
+                                                    <strong>{{ pet.name }}</strong>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge" style="background-color: var(--primary-color); color: white;">{{ pet.category }}</span>
+                                            </td>
+                                            <td>{{ pet.pet_type or 'N/A' }}</td>
+                                            <td>{{ pet.age }} years</td>
+                                            <td>{{ pet.owner_name }}</td>
+                                            <td>
+                                                <small class="text-muted">{{ pet.registered_on.strftime('%m/%d/%Y') }}</small>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-paw fa-4x text-muted mb-3"></i>
+                                <h5 class="text-muted">No Pets Registered Yet</h5>
+                                <p class="text-muted small">There are no pets registered in the system yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get chart data from hidden script tag
+    const chartData = JSON.parse(document.getElementById('chartData').textContent);
+
+    // Monthly Registration Chart
+    const registrationCtx = document.getElementById('registrationChart').getContext('2d');
+    const registrationData = chartData.monthlyRegistrations;
+
+    const registrationLabels = registrationData.map(item => {
+        const date = new Date(item.month + '-01');
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+    });
+
+    const registrationCounts = registrationData.map(item => item.count);
+
+    new Chart(registrationCtx, {
+        type: 'line',
+        data: {
+            labels: registrationLabels,
+            datasets: [{
+                label: 'Pet Registrations',
+                data: registrationCounts,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#2563eb',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 3,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                pointHoverBackgroundColor: '#2563eb',
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#d1d5db',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    displayColors: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)',
+                        borderColor: '#e5e7eb'
+                    },
+                    ticks: {
+                        stepSize: 1,
+                        color: '#4b5563',
+                        font: {
+                            size: 12,
+                            weight: '500'
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)',
+                        borderColor: '#e5e7eb'
+                    },
+                    ticks: {
+                        color: '#4b5563',
+                        font: {
+                            size: 12,
+                            weight: '500'
+                        },
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            },
+            elements: {
+                point: {
+                    hoverBorderWidth: 4
+                }
+            }
+        }
+    });
+
+    // Pet Type Distribution Chart
+    const petTypeCtx = document.getElementById('petTypeChart').getContext('2d');
+    const petTypeData = chartData.petTypeDistribution;
+
+    const petTypeLabels = petTypeData.map(item => item.category);
+    const petTypeCounts = petTypeData.map(item => item.count);
+
+    const colors = [
+        '#2563eb', // primary
+        '#059669', // secondary
+        '#f59e0b', // accent
+        '#0891b2', // info
+        '#d97706', // warning
+        '#dc2626'  // danger
+    ];
+
+    new Chart(petTypeCtx, {
+        type: 'doughnut',
+        data: {
+            labels: petTypeLabels,
+            datasets: [{
+                data: petTypeCounts,
+                backgroundColor: colors.slice(0, petTypeLabels.length),
+                borderColor: colors.slice(0, petTypeLabels.length).map(color => color.replace(')', ', 0.8)')),
+                borderWidth: 3,
+                hoverBorderWidth: 4,
+                hoverBorderColor: colors.slice(0, petTypeLabels.length)
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                        font: {
+                            size: 12,
+                            weight: '500'
+                        },
+                        color: '#374151'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#d1d5db',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return `${context.label}: ${context.parsed} (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            elements: {
+                arc: {
+                    borderRadius: 4
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

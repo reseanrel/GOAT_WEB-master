@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Burger Menu Button (Mobile) -->
+    <button class="burger-menu d-md-none" id="burgerMenu">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="row g-0">
+        {% include "admin/sidebar.html" %}
+
+        <!-- Main Content -->
+        <div class="col-md-10 main-content-wrapper">
+            <div class="main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3>Pets Available for Adoption</h3>
+                        <p class="text-muted mb-0">Manage pets available for adoption in the system</p>
+                    </div>
+                    <div class="text-end">
+                        <h6 class="mb-0">{{ session.user_name }}</h6>
+                        <span class="badge bg-danger">Administrator</span>
+                    </div>
+                </div>
+
+<div class="pet-container">
+    {% if adoption_pets %}
+        {% for pet in adoption_pets %}
+    <div class="pet-card admin-pet-card" data-status="adoption" data-category="{{ pet.category }}">
+        {% if pet.photo_url and pet.photo_url.strip() %}
+        <img src="{{ url_for('static', filename='uploads/' + pet.photo_url) }}?t={{ datetime.now().timestamp() | int }}" alt="{{ pet.name }}" class="pet-img">
+        {% else %}
+        {% if pet.category == 'Other' %}
+        <img src="{{ url_for('static', filename='uploads/other_category_image.jpg') }}?t={{ datetime.now().timestamp() | int }}" alt="{{ pet.name }}" class="pet-img">
+        {% else %}
+        <img src="https://via.placeholder.com/260x200" class="pet-img">
+        {% endif %}
+        {% endif %}
+        <div class="tag-bar">
+            {% if pet.category == 'Dog' %}
+            <span class="tag-dog">Dog</span>
+            {% elif pet.category == 'Cat' %}
+            <span class="tag-cat">Cat</span>
+            {% else %}
+            <span class="tag-other">{{ pet.category }}</span>
+            {% endif %}
+            <span class="tag-available">Available for Adoption</span>
+        </div>
+        <div class="details">
+            <div class="details-content">
+                <div class="pet-name">{{ pet.name }}</div>
+                <p><strong>Breed:</strong> {{ pet.pet_type or 'Not specified' }}</p>
+                <p><strong>Gender:</strong> {{ pet.gender or 'Not specified' }}</p>
+                <p><strong>Age:</strong> {{ pet.age }} years</p>
+                <p><strong>Color:</strong> {{ pet.color or 'Not specified' }}</p>
+                <p><strong>Owner:</strong> {{ pet.owner_name }}</p>
+                <p><strong>Contact:</strong> {{ pet.owner_contact or 'Not provided' }}</p>
+                <p><strong>Registered:</strong> {{ pet.registered_on.strftime('%m/%d/%Y') }}</p>
+            </div>
+
+            <div class="admin-actions">
+                <a href="{{ url_for('admin_pet_medical_records', pet_id=pet.id) }}" class="btn btn-sm btn-outline-info me-1" title="View Medical Records">
+                    <i class="fas fa-eye"></i>
+                </a>
+                <button class="btn btn-sm btn-outline-warning archive-pet-btn" data-pet-id="{{ pet.id }}" data-pet-name="{{ pet.name }}" title="Archive Pet">
+                    <i class="fas fa-archive"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+        {% endfor %}
+    {% else %}
+        <div class="no-adoption-message">
+            <i class="fas fa-heart fa-4x text-muted mb-3"></i>
+            <h5>No Pets Available for Adoption</h5>
+            <p class="text-muted">There are no pets currently available for adoption.</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="d-flex justify-content-center mt-4">
+    <nav aria-label="Adoption pets pagination">
+        <ul class="pagination">
+            <!-- Previous button -->
+            {% if page > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin_adoption', page=page-1) }}">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
+            </li>
+            {% endif %}
+
+            <!-- Page numbers -->
+            {% for page_num in range(1, total_pages + 1) %}
+            {% if page_num >= page - 2 and page_num <= page + 2 %}
+            <li class="page-item {% if page_num == page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('admin_adoption', page=page_num) }}">{{ page_num }}</a>
+            </li>
+            {% endif %}
+            {% endfor %}
+
+            <!-- Next button -->
+            {% if page < total_pages %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('admin_adoption', page=page+1) }}">
+                    Next <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+<!-- Pagination info -->
+<div class="text-center text-muted mt-2">
+    Showing {{ start_item }} to {{ end_item }} of {{ total_count }} pets
+</div>
+{% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Archive Confirmation Modal -->
+<div class="modal fade" id="archivePetModal" tabindex="-1" aria-labelledby="archivePetModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="archivePetModalLabel">Confirm Archive</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to archive the pet "<span id="archivePetName"></span>"? This will hide the pet from the main list but it can be restored if needed.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="confirmArchiveBtn">Archive</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const burgerMenu = document.getElementById('burgerMenu');
+    const closeSidebar = document.getElementById('closeSidebar');
+    const sidebar = document.getElementById('sidebar');
+
+    // Toggle sidebar on burger menu click
+    if (burgerMenu) {
+        burgerMenu.addEventListener('click', function() {
+            if (sidebar) sidebar.classList.toggle('sidebar-open');
+        });
+    }
+
+    // Close sidebar on close button click
+    if (closeSidebar) {
+        closeSidebar.addEventListener('click', function() {
+            if (sidebar) sidebar.classList.remove('sidebar-open');
+        });
+    }
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(event) {
+        if (window.innerWidth < 768) {
+            if (!sidebar.contains(event.target) && !burgerMenu.contains(event.target)) {
+                sidebar.classList.remove('sidebar-open');
+            }
+        }
+    });
+
+    // Archive pet functionality
+    let petToArchive = null;
+
+    const archiveButtons = document.querySelectorAll('.archive-pet-btn');
+
+    archiveButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            petToArchive = {
+                id: this.getAttribute('data-pet-id'),
+                name: this.getAttribute('data-pet-name')
+            };
+            document.getElementById('archivePetName').textContent = petToArchive.name;
+
+            // Manually show the modal
+            const modal = new bootstrap.Modal(document.getElementById('archivePetModal'));
+            modal.show();
+        });
+    });
+
+    // Confirm archive button in modal
+    const confirmBtn = document.getElementById('confirmArchiveBtn');
+
+    confirmBtn.addEventListener('click', function() {
+        if (!petToArchive) {
+            return;
+        }
+
+        // Close modal immediately for better UX
+        const modal = bootstrap.Modal.getInstance(document.getElementById('archivePetModal'));
+        modal.hide();
+
+        fetch(`/admin/archive-pet/${petToArchive.id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while archiving the pet.');
+        });
+    });
+});
+
+function confirmLogout() {
+    var logoutModal = new bootstrap.Modal(document.getElementById('logoutModal'));
+    logoutModal.show();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Burger Menu Button (Mobile) -->
+    <button class="burger-menu d-md-none" id="burgerMenu">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="row g-0">
+        <!-- Sidebar -->
+        {% include 'admin/sidebar.html' %}
+
+        <!-- Main Content -->
+        <div class="col-md-10 main-content-wrapper">
+            <div class="main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>Pet Details</h3>
+                    <a href="{{ url_for('admin_pets') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Pets
+                    </a>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Pet Information -->
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-center mb-3">
+                                    {% if pet.photo_url and pet.photo_url != 'None' and pet.photo_url.strip() %}
+                                    <div class="pet-photo-container me-4">
+                                        <img src="{{ url_for('static', filename='uploads/' + pet.photo_url) }}?t={{ (datetime.now().timestamp() * 1000) | int }}" alt="{{ pet.name }}" class="pet-photo rounded-circle shadow-lg" style="width: 150px; height: 150px; object-fit: cover; border: 4px solid #fff; box-shadow: 0 8px 20px rgba(0,0,0,0.15);">
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <h4 class="text-primary mb-1">{{ pet.name }}</h4>
+                                        {% if pet.photo_url and pet.photo_url != 'None' and pet.photo_url.strip() %}
+                                        <small class="text-muted">Pet Photo</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="row mt-4">
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-info-circle me-2"></i>Pet Information</h6>
+                                        <table class="table table-borderless">
+                                            <tr>
+                                                <td><strong>Category:</strong></td>
+                                                <td>{{ pet.category }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Type:</strong></td>
+                                                <td>{{ pet.pet_type or 'Not specified' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Gender:</strong></td>
+                                                <td>{{ pet.gender or 'Not specified' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Color:</strong></td>
+                                                <td>{{ pet.color or 'Not specified' }}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6><i class="fas fa-calendar me-2"></i>Registration Details</h6>
+                                        <table class="table table-borderless">
+                                            <tr>
+                                                <td><strong>Age:</strong></td>
+                                                <td>{{ pet.age }} year(s)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Registered On:</strong></td>
+                                                <td>{{ pet.registered_on.strftime('%m/%d/%Y') }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Status:</strong></td>
+                                                <td>
+                                                    {% if pet.available_for_adoption and not pet.deceased %}
+                                                    <span class="tag-available">Available for Adoption</span>
+                                                    {% endif %}
+                                                    {% if pet.lost %}
+                                                    <span class="badge bg-danger">Lost</span>
+                                                    {% else %}
+                                                    <span class="badge bg-success">Safe</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Owner Information -->
+                                <div class="row mt-4">
+                                    <div class="col-md-12">
+                                        <h6><i class="fas fa-user me-2"></i>Owner Information</h6>
+                                        <table class="table table-borderless">
+                                            <tr>
+                                                <td><strong>Name:</strong></td>
+                                                <td>{{ owner.full_name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Email:</strong></td>
+                                                <td>{{ owner.email }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Contact Number:</strong></td>
+                                                <td>{{ owner.contact_number or 'Not provided' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Address:</strong></td>
+                                                <td>{{ owner.address or 'Not provided' }}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Actions -->
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Admin Actions</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                            <a href="{{ url_for('admin_pet_medical_records', pet_id=pet.id) }}" class="btn btn-outline-primary">
+                                                <i class="fas fa-notes-medical me-2"></i>View Medical Records
+                                            </a>
+                                            {% if pet.lost %}
+                                            <button type="button" class="btn btn-outline-success" onclick="markAsFound({{ pet.id }})">
+                                                <i class="fas fa-check-circle me-2"></i>Mark as Found
+                                            </button>
+                                            {% endif %}
+                                            <button type="button" class="btn btn-outline-danger" onclick="archivePet({{ pet.id }})">
+                                                <i class="fas fa-archive me-2"></i>Archive Pet
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medical Records -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-notes-medical me-2"></i>Medical Records</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if medical_records %}
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Record Type</th>
+                                                    <th>Date</th>
+                                                    <th>Next Due Date</th>
+                                                    <th>Provider</th>
+                                                    <th>Description</th>
+                                                    <th>Receipt</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for record in medical_records %}
+                                                <tr>
+                                                    <td><strong>{{ record.record_type }}</strong></td>
+                                                    <td>{{ record.record_date.strftime('%m/%d/%Y') if record.record_date else 'N/A' }}</td>
+                                                    <td>
+                                                        {% if record.next_due_date %}
+                                                            <span class="badge bg-{% if record.next_due_date < datetime.now().date() %}danger{% else %}success{% endif %}">
+                                                                {{ record.next_due_date.strftime('%m/%d/%Y') }}
+                                                            </span>
+                                                        {% else %}
+                                                            N/A
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>{{ record.provider or 'N/A' }}</td>
+                                                    <td>{{ record.description or 'N/A' }}</td>
+                                                    <td>
+                                                        {% if record.photo_url and record.photo_url != 'None' and record.photo_url.strip() %}
+                                                        <a href="{{ url_for('static', filename='uploads/' + record.photo_url) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-image me-1"></i>View
+                                                        </a>
+                                                        {% else %}
+                                                        No receipt
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>No medical records found for this pet.
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mark Found Modal -->
+<div class="modal fade" id="markFoundModal" tabindex="-1" aria-labelledby="markFoundModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="markFoundModalLabel">
+                    <i class="fas fa-check-circle me-2"></i>Mark Pet as Found
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Please provide an admin note about how this pet was found.</p>
+                <form id="markFoundForm">
+                    <div class="mb-3">
+                        <label for="foundNote" class="form-label">Admin Note <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="foundNote" rows="4" placeholder="Provide details about how the pet was found..." required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="submitMarkFound()">
+                    <i class="fas fa-check-circle me-2"></i>Mark as Found
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Archive Pet Modal -->
+<div class="modal fade" id="archivePetModal" tabindex="-1" aria-labelledby="archivePetModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="archivePetModalLabel">
+                    <i class="fas fa-archive me-2"></i>Archive Pet
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger">Are you sure you want to archive this pet? This action cannot be undone.</p>
+                <p class="text-muted">Archived pets will be hidden from the main listings but can be restored from the Archived Records section.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmArchivePet()">
+                    <i class="fas fa-archive me-2"></i>Archive Pet
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.pet-photo-container {
+    position: relative;
+    display: inline-block;
+}
+
+.pet-photo-container::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    z-index: -1;
+}
+
+.pet-photo {
+    transition: transform 0.3s ease;
+}
+
+.pet-photo:hover {
+    transform: scale(1.05);
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global variables
+let currentPetId = null;
+
+// Initialize modal event listeners when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    const burgerMenu = document.getElementById('burgerMenu');
+    const closeSidebar = document.getElementById('closeSidebar');
+    const sidebar = document.getElementById('sidebar');
+
+    // Toggle sidebar on burger menu click
+    burgerMenu.addEventListener('click', function() {
+        sidebar.classList.toggle('sidebar-open');
+    });
+
+    // Close sidebar on close button click
+    if (closeSidebar) {
+        closeSidebar.addEventListener('click', function() {
+            sidebar.classList.remove('sidebar-open');
+        });
+    }
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(event) {
+        if (window.innerWidth < 768) {
+            if (!sidebar.contains(event.target) && !burgerMenu.contains(event.target)) {
+                sidebar.classList.remove('sidebar-open');
+            }
+        }
+    });
+});
+
+function markAsFound(petId) {
+    currentPetId = petId;
+    document.getElementById('foundNote').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('markFoundModal'));
+    modal.show();
+}
+
+function submitMarkFound() {
+    const note = document.getElementById('foundNote').value.trim();
+    if (!note) {
+        alert('Please provide an admin note.');
+        return;
+    }
+
+    // Show loading state
+    const submitBtn = document.querySelector('#markFoundModal .btn-success');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+
+    fetch(`/admin/mark-pet-found/${currentPetId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ note: note })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Pet marked as found successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('markFoundModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while marking the pet as found.');
+    })
+    .finally(() => {
+        // Reset button state
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+}
+
+function archivePet(petId) {
+    currentPetId = petId;
+    const modal = new bootstrap.Modal(document.getElementById('archivePetModal'));
+    modal.show();
+}
+
+function confirmArchivePet() {
+    // Show loading state
+    const submitBtn = document.querySelector('#archivePetModal .btn-danger');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Archiving...';
+
+    fetch(`/admin/archive-pet/${currentPetId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Pet archived successfully!');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('archivePetModal'));
+            modal.hide();
+            window.location.href = '{{ url_for("admin_pets") }}';
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while archiving the pet.');
+    })
+    .finally(() => {
+        // Reset button state
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+}
+</script>
+{% endblock %}

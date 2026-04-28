@@ -1,0 +1,8 @@
+- [x] Update templates/user/adoption.html to match sidebar structure of other user pages (dashboard.html, my_pets.html)
+- [x] Add burger menu button for mobile
+- [x] Add close sidebar button
+- [x] Update main content to use col-md-10 main-content-wrapper
+- [x] Add logout link to sidebar
+- [x] Add JavaScript for mobile sidebar toggle
+- [x] Run Flask app
+- [x] Test adoption page critically: desktop sidebar, mobile toggle, navigation links, responsiveness
