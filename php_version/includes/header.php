@@ -196,7 +196,169 @@
             opacity: 1;
         }
 
-        /* Navigation Menu */
+        /* Sidebar Navigation for Dashboard */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--color-bg);
+            border-right: 1px solid var(--color-border);
+            padding: var(--spacing-xl) var(--spacing-lg);
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            padding-bottom: var(--spacing-lg);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .sidebar-brand {
+            font-weight: 700;
+            font-size: 20px;
+            color: var(--color-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .sidebar-user {
+            background: var(--color-bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+            border: 1px solid var(--color-border);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: var(--spacing-md);
+        }
+
+        .user-info h6 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        .user-info p {
+            margin: var(--spacing-xs) 0 0 0;
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-lg);
+            text-decoration: none;
+            color: var(--color-text-secondary);
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .sidebar-link:hover {
+            background: var(--color-bg-secondary);
+            color: var(--color-primary);
+        }
+
+        .sidebar-link.active {
+            background: rgba(26, 115, 232, 0.1);
+            color: var(--color-primary);
+            font-weight: 600;
+        }
+
+        .sidebar-link i {
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+            background: var(--color-bg-secondary);
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        .top-bar {
+            background: var(--color-bg);
+            border-bottom: 1px solid var(--color-border);
+            padding: var(--spacing-md) var(--spacing-xl);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            padding: var(--spacing-sm);
+            border-radius: var(--radius-md);
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .menu-toggle:hover {
+            background: var(--color-bg-secondary);
+            color: var(--color-text);
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--color-text);
+            margin: 0;
+        }
+
+        .page-content {
+            padding: var(--spacing-xl);
+        }
+
+        /* Navigation Menu (for public pages) */
         .nav-menu {
             display: flex;
             align-items: center;
@@ -205,6 +367,18 @@
 
         /* Mobile Menu */
         @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
             .nav-menu {
                 position: absolute;
                 top: 100%;
@@ -242,6 +416,10 @@
                 text-align: center;
                 border-radius: var(--radius-lg);
             }
+
+            .page-content {
+                padding: var(--spacing-lg);
+            }
         }
 
         /* Loading Animation */
@@ -256,38 +434,68 @@
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <a class="navbar-brand" href="/index.php">
-                <i class="fas fa-paw"></i>
-                Pila Pet Registration
-            </a>
+    <?php if (isset($_SESSION['user_id'])): ?>
+        <!-- Sidebar for logged-in users -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a class="sidebar-brand" href="/index.php">
+                    <i class="fas fa-paw"></i>
+                    Pila Pets
+                </a>
+            </div>
 
-            <button class="navbar-toggler" type="button" onclick="toggleMobileMenu()">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            <div class="sidebar-user">
+                <div style="display: flex; align-items: center;">
+                    <div class="user-avatar">
+                        <?php echo strtoupper(substr($_SESSION['full_name'] ?? 'U', 0, 1)); ?>
+                    </div>
+                    <div class="user-info">
+                        <h6><?php echo htmlspecialchars($_SESSION['full_name'] ?? 'User'); ?></h6>
+                        <p><?php echo $_SESSION['is_admin'] ? 'Administrator' : 'Pet Owner'; ?></p>
+                    </div>
+                </div>
+            </div>
 
-            <div class="nav-menu" id="navMenu">
-                <?php if (isset($_SESSION['user_id'])): ?>
-                    <?php if ($_SESSION['is_admin']): ?>
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' && strpos($_SERVER['REQUEST_URI'], '/admin/') !== false ? 'active' : ''; ?>" href="/admin/dashboard.php">
-                            Admin Dashboard
-                        </a>
-                    <?php else: ?>
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' && strpos($_SERVER['REQUEST_URI'], '/user/') !== false ? 'active' : ''; ?>" href="/user/dashboard.php">
-                            My Pets
-                        </a>
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'lost_pets.php' ? 'active' : ''; ?>" href="/lost_pets.php">
-                            Lost Pets
-                        </a>
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'adoption.php' ? 'active' : ''; ?>" href="/adoption.php">
-                            Adoption
-                        </a>
-                    <?php endif; ?>
-                    <a class="nav-link" href="/user/logout.php">
-                        Logout
-                    </a>
+            <ul class="sidebar-nav">
+                <?php if ($_SESSION['is_admin']): ?>
+                    <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' && strpos($_SERVER['REQUEST_URI'], '/admin/') !== false ? 'active' : ''; ?>" href="/admin/dashboard.php"><i class="fas fa-tachometer-alt"></i>Dashboard</a></li>
+                    <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'manage_pets.php' ? 'active' : ''; ?>" href="/admin/manage_pets.php"><i class="fas fa-paw"></i>Manage Pets</a></li>
+                    <li><a class="sidebar-link" href="/lost_pets.php"><i class="fas fa-search"></i>Lost Pets</a></li>
+                    <li><a class="sidebar-link" href="/adoption.php"><i class="fas fa-heart"></i>Adoption</a></li>
                 <?php else: ?>
+                    <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' && strpos($_SERVER['REQUEST_URI'], '/user/') !== false ? 'active' : ''; ?>" href="/user/dashboard.php"><i class="fas fa-home"></i>Dashboard</a></li>
+                    <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'register_pet.php' ? 'active' : ''; ?>" href="/user/register_pet.php"><i class="fas fa-plus-circle"></i>Register Pet</a></li>
+                    <li><a class="sidebar-link" href="/lost_pets.php"><i class="fas fa-search"></i>Lost Pets</a></li>
+                    <li><a class="sidebar-link" href="/adoption.php"><i class="fas fa-heart"></i>Adoption</a></li>
+                <?php endif; ?>
+                <li><a class="sidebar-link" href="/user/logout.php"><i class="fas fa-sign-out-alt"></i>Logout</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main content wrapper for dashboard pages -->
+        <div class="main-content" id="mainContent">
+            <div class="top-bar">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                <div></div> <!-- Spacer for flex layout -->
+            </div>
+            <div class="page-content fade-in">
+    <?php else: ?>
+        <!-- Top navbar for public pages -->
+        <nav class="navbar">
+            <div class="container">
+                <a class="navbar-brand" href="/index.php">
+                    <i class="fas fa-paw"></i>
+                    Pila Pet Registration
+                </a>
+
+                <button class="navbar-toggler" type="button" onclick="toggleMobileMenu()">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="nav-menu" id="navMenu">
                     <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'login.php' ? 'active' : ''; ?>" href="/login.php">
                         Login
                     </a>
@@ -297,15 +505,15 @@
                     <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'lost_pets.php' ? 'active' : ''; ?>" href="/lost_pets.php">
                         Lost Pets
                     </a>
-                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'view_emails.php' ? 'active' : ''; ?>" href="/view_emails.php">
-                        Test Emails
+                    <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'adoption.php' ? 'active' : ''; ?>" href="/adoption.php">
+                        Adoption
                     </a>
-                <?php endif; ?>
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
 
-    <div class="container fade-in">
+        <div class="container fade-in">
+    <?php endif; ?>
         <?php if (isset($_SESSION['success'])): ?>
             <div class="alert alert-success">
                 <i class="fas fa-check-circle"></i>
@@ -325,7 +533,14 @@
         <script>
             function toggleMobileMenu() {
                 const menu = document.getElementById('navMenu');
-                menu.classList.toggle('show');
+                if (menu) menu.classList.toggle('show');
+            }
+
+            function toggleSidebar() {
+                const sidebar = document.getElementById('sidebar');
+                const mainContent = document.getElementById('mainContent');
+                if (sidebar) sidebar.classList.toggle('collapsed');
+                if (mainContent) mainContent.classList.toggle('expanded');
             }
 
             // Close mobile menu when clicking outside
@@ -333,8 +548,24 @@
                 const menu = document.getElementById('navMenu');
                 const toggler = document.querySelector('.navbar-toggler');
 
-                if (!menu.contains(event.target) && !toggler.contains(event.target)) {
+                if (menu && toggler && !menu.contains(event.target) && !toggler.contains(event.target)) {
                     menu.classList.remove('show');
+                }
+            });
+
+            // Set page title dynamically
+            document.addEventListener('DOMContentLoaded', function() {
+                const pageTitle = document.getElementById('pageTitle');
+                if (pageTitle) {
+                    const currentPage = window.location.pathname.split('/').pop().replace('.php', '');
+                    const titles = {
+                        'dashboard': 'Dashboard',
+                        'register_pet': 'Register New Pet',
+                        'manage_pets': 'Manage Pets',
+                        'lost_pets': 'Lost Pets',
+                        'adoption': 'Pet Adoption'
+                    };
+                    pageTitle.textContent = titles[currentPage] || 'Dashboard';
                 }
             });
         </script>

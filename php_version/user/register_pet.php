@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $age = !empty($_POST['age']) ? (int)$_POST['age'] : null;
     $color = sanitizeInput($_POST['color']);
     $gender = sanitizeInput($_POST['gender']);
-    $availableForAdoption = isset($_POST['for_adoption']);
+    $availableForAdoption = isset($_POST['for_adoption']) ? 1 : 0;
 
     $errors = [];
 
