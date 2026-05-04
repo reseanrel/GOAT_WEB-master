@@ -3,8 +3,24 @@ session_start();
 require_once '../includes/auth.php';
 requireLogin();
 
-if (isAdmin()) {
-    header('Location: ../admin/dashboard.php');
+if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+    header('Location: dashboard.php');
+    exit();
+}
+
+$petId = (int)$_GET['id'];
+
+$db = Database::getInstance();
+$conn = $db->getConnection();
+
+// Get pet details
+$stmt = $conn->prepare("SELECT * FROM pets WHERE id = ? AND owner_id = ?");
+$stmt->execute([$petId, $_SESSION['user_id']]);
+$pet = $stmt->fetch();
+
+if (!$pet) {
+    $_SESSION['error'] = 'Pet not found or access denied.';
+    header('Location: dashboard.php');
     exit();
 }
 
@@ -17,9 +33,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $gender = sanitizeInput($_POST['gender']);
     $availableForAdoption = isset($_POST['for_adoption']) ? 1 : 0;
 
-    $photoPath = null;
+    $photoPath = $pet['photo']; // Keep existing photo by default
 
-    // Handle file upload
+    // Handle file upload (only if a new file is uploaded)
     if (isset($_FILES['pet_photo']) && $_FILES['pet_photo']['error'] == UPLOAD_ERR_OK) {
         $uploadDir = '../uploads/';
         $fileName = basename($_FILES['pet_photo']['name']);
@@ -31,6 +47,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $uploadPath = $uploadDir . $newFileName;
 
             if (move_uploaded_file($_FILES['pet_photo']['tmp_name'], $uploadPath)) {
+                // Delete old photo if it exists
+                if ($pet['photo'] && file_exists($uploadDir . $pet['photo'])) {
+                    unlink($uploadDir . $pet['photo']);
+                }
                 $photoPath = $newFileName;
             } else {
                 $errors[] = 'Failed to upload photo';
@@ -51,18 +71,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        $db = Database::getInstance();
-        $conn = $db->getConnection();
-
         try {
             $stmt = $conn->prepare("
-                INSERT INTO pets (name, category, pet_type, age, color, gender, owner_id, available_for_adoption, photo_url, status, registered_on)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+                UPDATE pets SET
+                    name = ?, category = ?, pet_type = ?, age = ?, color = ?,
+                    gender = ?, available_for_adoption = ?, photo_url = ?
+                WHERE id = ? AND owner_id = ?
             ");
-            $stmt->execute([$name, $category, $petType, $age, $color, $gender, $_SESSION['user_id'], $availableForAdoption, $photoPath]);
+            $stmt->execute([
+                $name, $category, $petType, $age, $color, $gender,
+                $availableForAdoption, $photoPath, $petId, $_SESSION['user_id']
+            ]);
 
-            $_SESSION['success'] = "Pet '$name' registered successfully and is pending admin approval!";
-            header('Location: dashboard.php');
+            $_SESSION['success'] = "Pet '$name' details updated successfully!";
+            header('Location: pet_details.php?id=' . $petId);
             exit();
 
         } catch (Exception $e) {
@@ -396,24 +418,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .required {
         color: #ef4444;
     }
+
+    .current-photo-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
+    }
 </style>
 
 <div class="registration-container">
     <div class="registration-card">
         <div class="form-header">
-            <h1><i class="fas fa-paw" style="color: var(--primary-color); margin-right: 0.5rem;"></i>Register New Pet</h1>
-            <p>Add your pet to the registration system. Your pet will be pending admin approval.</p>
+            <h1><i class="fas fa-edit" style="color: var(--primary-color); margin-right: 0.5rem;"></i>Edit Pet Details</h1>
+            <p>Update information for <?php echo htmlspecialchars($pet['name']); ?></p>
         </div>
 
         <form method="POST" enctype="multipart/form-data">
             <!-- Image Upload Section -->
             <div class="image-upload-section">
-                <div class="image-upload-container" onclick="document.getElementById('pet_photo').click()">
-                    <img id="imagePreview" class="image-preview" src="" alt="Pet Preview">
-                    <i class="fas fa-camera upload-icon"></i>
+                <div class="image-upload-container <?php echo $pet['photo_url'] ? 'has-image' : ''; ?>" onclick="document.getElementById('pet_photo').click()">
+
+                        <img id="imagePreview" class="image-preview show" src="../uploads/<?php echo htmlspecialchars($pet['photo_url']); ?>" alt="Current Pet Photo">
+                    <?php else: ?>
+                        <i class="fas fa-camera upload-icon"></i>
+                    <?php endif; ?>
                     <input type="file" id="pet_photo" name="pet_photo" accept="image/*" style="display: none;">
                 </div>
-                <p class="upload-text">Click to upload pet photo</p>
+                <p class="upload-text">Click to change photo</p>
+                <?php if ($pet['photo']): ?>
+                    <p class="current-photo-label">Current photo will be replaced if you upload a new one</p>
+                <?php endif; ?>
             </div>
 
             <!-- Form Fields -->
@@ -424,7 +458,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </label>
                     <i class="fas fa-tag input-icon"></i>
                     <input type="text" class="form-input" id="pet_name" name="pet_name" placeholder="Enter pet name"
-                           value="<?php echo isset($_POST['pet_name']) ? htmlspecialchars($_POST['pet_name']) : ''; ?>" required>
+                           value="<?php echo htmlspecialchars($pet['name']); ?>" required>
                 </div>
 
                 <div class="form-group">
@@ -434,10 +468,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <i class="fas fa-list input-icon"></i>
                     <select class="form-input form-select" id="pet_category" name="pet_category" required>
                         <option value="">Select Category</option>
-                        <option value="Dog" <?php echo (isset($_POST['pet_category']) && $_POST['pet_category'] == 'Dog') ? 'selected' : ''; ?>>🐕 Dog</option>
-                        <option value="Cat" <?php echo (isset($_POST['pet_category']) && $_POST['pet_category'] == 'Cat') ? 'selected' : ''; ?>>🐱 Cat</option>
-                        <option value="Bird" <?php echo (isset($_POST['pet_category']) && $_POST['pet_category'] == 'Bird') ? 'selected' : ''; ?>>🐦 Bird</option>
-                        <option value="Other" <?php echo (isset($_POST['pet_category']) && $_POST['pet_category'] == 'Other') ? 'selected' : ''; ?>>🐾 Other</option>
+                        <option value="Dog" <?php echo ($pet['category'] == 'Dog') ? 'selected' : ''; ?>>🐕 Dog</option>
+                        <option value="Cat" <?php echo ($pet['category'] == 'Cat') ? 'selected' : ''; ?>>🐱 Cat</option>
+                        <option value="Bird" <?php echo ($pet['category'] == 'Bird') ? 'selected' : ''; ?>>🐦 Bird</option>
+                        <option value="Other" <?php echo ($pet['category'] == 'Other') ? 'selected' : ''; ?>>🐾 Other</option>
                     </select>
                 </div>
 
@@ -445,21 +479,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label class="form-label" for="pet_type">Breed/Type</label>
                     <i class="fas fa-dna input-icon"></i>
                     <input type="text" class="form-input" id="pet_type" name="pet_type" placeholder="e.g., Golden Retriever"
-                           value="<?php echo isset($_POST['pet_type']) ? htmlspecialchars($_POST['pet_type']) : ''; ?>">
+                           value="<?php echo htmlspecialchars($pet['pet_type'] ?? ''); ?>">
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="age">Age (years)</label>
                     <i class="fas fa-birthday-cake input-icon"></i>
                     <input type="number" class="form-input" id="age" name="age" placeholder="Enter age" min="0" max="30"
-                           value="<?php echo isset($_POST['age']) ? htmlspecialchars($_POST['age']) : ''; ?>">
+                           value="<?php echo htmlspecialchars($pet['age'] ?? ''); ?>">
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="color">Color</label>
                     <i class="fas fa-palette input-icon"></i>
                     <input type="text" class="form-input" id="color" name="color" placeholder="e.g., Brown & White"
-                           value="<?php echo isset($_POST['color']) ? htmlspecialchars($_POST['color']) : ''; ?>">
+                           value="<?php echo htmlspecialchars($pet['color'] ?? ''); ?>">
                 </div>
 
                 <div class="form-group">
@@ -467,29 +501,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <i class="fas fa-venus-mars input-icon"></i>
                     <select class="form-input form-select" id="gender" name="gender">
                         <option value="">Select Gender</option>
-                        <option value="Male" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'Male') ? 'selected' : ''; ?>>♂️ Male</option>
-                        <option value="Female" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'Female') ? 'selected' : ''; ?>>♀️ Female</option>
+                        <option value="Male" <?php echo ($pet['gender'] == 'Male') ? 'selected' : ''; ?>>♂️ Male</option>
+                        <option value="Female" <?php echo ($pet['gender'] == 'Female') ? 'selected' : ''; ?>>♀️ Female</option>
                     </select>
                 </div>
             </div>
 
             <!-- Toggle Switch -->
-            <div class="toggle-container <?php echo isset($_POST['for_adoption']) ? 'active' : ''; ?>" onclick="toggleAdoption()">
+            <div class="toggle-container <?php echo $pet['available_for_adoption'] ? 'active' : ''; ?>" onclick="toggleAdoption()">
                 <p class="toggle-label">Available for Adoption</p>
                 <div class="toggle-switch"></div>
                 <input type="checkbox" id="for_adoption" name="for_adoption" style="display: none;"
-                       <?php echo isset($_POST['for_adoption']) ? 'checked' : ''; ?>>
+                       <?php echo $pet['available_for_adoption'] ? 'checked' : ''; ?>>
             </div>
 
             <!-- Form Actions -->
             <div class="form-actions">
-                <a href="dashboard.php" class="btn btn-outline">
+                <a href="pet_details.php?id=<?php echo $petId; ?>" class="btn btn-outline">
                     <i class="fas fa-times"></i>
                     Cancel
                 </a>
                 <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-paw"></i>
-                    Register Pet
+                    <i class="fas fa-save"></i>
+                    Update Pet
                 </button>
             </div>
         </form>
@@ -511,10 +545,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 container.classList.add('has-image');
             };
             reader.readAsDataURL(file);
-        } else {
-            preview.src = '';
-            preview.classList.remove('show');
-            container.classList.remove('has-image');
         }
     });
 

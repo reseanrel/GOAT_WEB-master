@@ -343,7 +343,7 @@ $medicalRecords = $stmt->fetchAll();
 
 <div class="pet-details">
     <div class="pet-header">
-        <?php if ($pet['photo_url'] && file_exists("../uploads/{$pet['photo_url']}")): ?>
+        <?php if ($pet['photo'] && file_exists("../uploads/{$pet['photo']}")): ?>
             <img src="../uploads/<?php echo htmlspecialchars($pet['photo_url']); ?>" alt="Pet Photo" class="pet-image-large">
         <?php else: ?>
             <div class="pet-image-placeholder">
@@ -401,6 +401,10 @@ $medicalRecords = $stmt->fetchAll();
             <a href="dashboard.php" class="btn-action btn-back">
                 <i class="fas fa-arrow-left"></i>
                 Back to Dashboard
+            </a>
+            <a href="edit_pet.php?id=<?php echo $pet['id']; ?>" class="btn-action btn-primary">
+                <i class="fas fa-edit"></i>
+                Edit Details
             </a>
             <?php if ($pet['lost']): ?>
                 <button class="btn-action btn-success" onclick="markFound()">

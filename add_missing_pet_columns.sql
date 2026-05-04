@@ -1,5 +1,8 @@
 -- Add missing columns to pets table for Supabase compatibility
 
+-- Add photo_url column
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS photo_url VARCHAR(255) NULL;
+
 -- Add for_adoption column
 ALTER TABLE pets ADD COLUMN IF NOT EXISTS for_adoption BOOLEAN DEFAULT FALSE;
 
