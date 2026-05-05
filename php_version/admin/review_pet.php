@@ -67,6 +67,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 <?php include '../includes/header.php'; ?>
 
+<link rel="stylesheet" href="admin.css">
+
 <style>
     .pet-review {
         max-width: 1200px;
@@ -145,21 +147,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         gap: var(--spacing-xs);
     }
 
-    .status-pending {
-        background: var(--color-warning);
-        color: white;
-    }
-
-    .status-approved {
-        background: var(--color-success);
-        color: white;
-    }
-
-    .status-rejected {
-        background: var(--color-error);
-        color: white;
-    }
-
     .action-buttons {
         display: flex;
         gap: var(--spacing-md);
@@ -180,34 +167,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         gap: var(--spacing-sm);
     }
 
-    .btn-approve {
-        background: var(--color-success);
-        color: white;
+    .btn-back {
+        background: var(--color-bg-secondary);
+        color: var(--color-text);
+        border: 2px solid var(--color-border);
     }
 
-    .btn-approve:hover {
-        background: #2e7d32;
-        transform: translateY(-1px);
-    }
-
-    .btn-reject {
-        background: var(--color-error);
-        color: white;
-    }
-
-    .btn-reject:hover {
-        background: #c62828;
-        transform: translateY(-1px);
-    }
-
-    .btn-delete {
-        background: var(--color-text-muted);
-        color: white;
-    }
-
-    .btn-delete:hover {
-        background: #5f6368;
-        transform: translateY(-1px);
+    .btn-back:hover {
+        background: var(--color-text);
+        color: var(--color-bg);
     }
 
     .btn-back {
@@ -424,13 +392,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 <div class="pet-review">
     <div class="pet-header">
-        <?php if ($pet['photo_url'] && file_exists("../uploads/{$pet['photo_url']}")): ?>
-            <img src="../uploads/<?php echo htmlspecialchars($pet['photo_url']); ?>" alt="Pet Photo" class="pet-image-large">
-        <?php else: ?>
-            <div class="pet-image-placeholder">
-                <i class="fas fa-paw"></i>
-            </div>
-        <?php endif; ?>
+        <div class="pet-image-placeholder">
+            <i class="fas fa-paw"></i>
+        </div>
 
         <div class="pet-info">
             <h1><?php echo htmlspecialchars($pet['name']); ?></h1>

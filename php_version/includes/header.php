@@ -468,7 +468,7 @@
                     <li><a class="sidebar-link" href="/lost_pets.php"><i class="fas fa-search"></i>Lost Pets</a></li>
                     <li><a class="sidebar-link" href="/adoption.php"><i class="fas fa-heart"></i>Adoption</a></li>
                 <?php endif; ?>
-                <li><a class="sidebar-link" href="/user/logout.php"><i class="fas fa-sign-out-alt"></i>Logout</a></li>
+                <li><a class="sidebar-link" href="#" onclick="confirmLogout(event)"><i class="fas fa-sign-out-alt"></i>Logout</a></li>
             </ul>
         </aside>
 
@@ -552,6 +552,197 @@
                     menu.classList.remove('show');
                 }
             });
+
+            // Logout confirmation modal
+            function confirmLogout(event) {
+                event.preventDefault();
+                showLogoutModal();
+            }
+
+            function showLogoutModal() {
+                // Create modal overlay
+                const modal = document.createElement('div');
+                modal.id = 'logoutModal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.6);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                    backdrop-filter: blur(4px);
+                    animation: fadeIn 0.3s ease-out;
+                `;
+
+                // Create modal content
+                modal.innerHTML = `
+                    <div style="
+                        background: white;
+                        border-radius: var(--radius-2xl);
+                        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                        max-width: 400px;
+                        width: 90%;
+                        animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                        position: relative;
+                        overflow: hidden;
+                    ">
+                        <div style="
+                            padding: var(--spacing-2xl) var(--spacing-2xl) var(--spacing-lg);
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            text-align: center;
+                        ">
+                            <div style="
+                                width: 60px;
+                                height: 60px;
+                                background: rgba(255, 255, 255, 0.2);
+                                border-radius: 50%;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                margin: 0 auto var(--spacing-lg);
+                            ">
+                                <i class="fas fa-sign-out-alt" style="font-size: 24px;"></i>
+                            </div>
+                            <h3 style="
+                                margin: 0;
+                                font-size: 24px;
+                                font-weight: 700;
+                                text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                            ">Logout Confirmation</h3>
+                        </div>
+
+                        <div style="
+                            padding: var(--spacing-2xl);
+                            text-align: center;
+                        ">
+                            <p style="
+                                margin: 0 0 var(--spacing-xl);
+                                color: var(--color-text-secondary);
+                                font-size: 16px;
+                                line-height: 1.5;
+                            ">
+                                Are you sure you want to logout?<br>
+                                <small style="color: var(--color-text-muted);">You'll need to login again to access your account.</small>
+                            </p>
+
+                            <div style="
+                                display: flex;
+                                gap: var(--spacing-lg);
+                                justify-content: center;
+                            ">
+                                <button onclick="closeLogoutModal()" style="
+                                    background: #e2e8f0;
+                                    color: var(--color-text);
+                                    border: 1px solid var(--color-border);
+                                    padding: var(--spacing-md) var(--spacing-xl);
+                                    border-radius: var(--radius-lg);
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    transition: all 0.3s ease;
+                                    flex: 1;
+                                " onmouseover="this.style.background='#cbd5e0'" onmouseout="this.style.background='#e2e8f0'">
+                                    Cancel
+                                </button>
+                                <button onclick="proceedLogout()" style="
+                                    background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+                                    color: white;
+                                    border: none;
+                                    padding: var(--spacing-md) var(--spacing-xl);
+                                    border-radius: var(--radius-lg);
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    transition: all 0.3s ease;
+                                    flex: 1;
+                                    box-shadow: 0 4px 16px rgba(229, 62, 62, 0.3);
+                                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 32px rgba(229, 62, 62, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(229, 62, 62, 0.3)'">
+                                    <i class="fas fa-sign-out-alt" style="margin-right: var(--spacing-sm);"></i>
+                                    Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                // Add CSS animations
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+
+                    @keyframes fadeOut {
+                        from { opacity: 1; }
+                        to { opacity: 0; }
+                    }
+
+                    @keyframes slideUp {
+                        from {
+                            opacity: 0;
+                            transform: translateY(30px) scale(0.95);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0) scale(1);
+                        }
+                    }
+
+                    @media (max-width: 480px) {
+                        #logoutModal .modal-content {
+                            margin: var(--spacing-lg);
+                            width: calc(100% - var(--spacing-2xl));
+                        }
+
+                        #logoutModal button {
+                            font-size: 14px !important;
+                            padding: var(--spacing-sm) var(--spacing-lg) !important;
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+
+                // Focus management
+                modal.setAttribute('tabindex', '-1');
+                modal.focus();
+
+                // Close on escape key
+                document.addEventListener('keydown', handleEscape);
+                function handleEscape(e) {
+                    if (e.key === 'Escape') {
+                        closeLogoutModal();
+                        document.removeEventListener('keydown', handleEscape);
+                    }
+                }
+
+                // Close on outside click
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        closeLogoutModal();
+                    }
+                });
+            }
+
+            function closeLogoutModal() {
+                const modal = document.getElementById('logoutModal');
+                if (modal) {
+                    modal.style.animation = 'fadeOut 0.3s ease-out';
+                    setTimeout(() => {
+                        modal.remove();
+                    }, 300);
+                }
+            }
+
+            function proceedLogout() {
+                closeLogoutModal();
+                window.location.href = '/user/logout.php';
+            }
 
             // Set page title dynamically
             document.addEventListener('DOMContentLoaded', function() {

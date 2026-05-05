@@ -76,143 +76,12 @@ $stats = [
 
 <?php include '../includes/header.php'; ?>
 
+<link rel="stylesheet" href="admin.css">
+
 <style>
     .manage-users {
         max-width: 1400px;
         margin: 0 auto;
-    }
-
-    .stats-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: var(--spacing-lg);
-        margin-bottom: var(--spacing-2xl);
-    }
-
-    .stat-card {
-        background: var(--color-bg);
-        border-radius: var(--radius-xl);
-        padding: var(--spacing-xl);
-        box-shadow: var(--shadow-md);
-        border: 1px solid var(--color-border);
-        text-align: center;
-        transition: transform 0.2s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-2px);
-    }
-
-    .stat-value {
-        font-size: 32px;
-        font-weight: 700;
-        color: var(--color-primary);
-        margin-bottom: var(--spacing-xs);
-        display: block;
-    }
-
-    .stat-label {
-        font-size: 14px;
-        color: var(--color-text-secondary);
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .filters-section {
-        background: var(--color-bg);
-        border-radius: var(--radius-xl);
-        padding: var(--spacing-xl);
-        margin-bottom: var(--spacing-xl);
-        border: 1px solid var(--color-border);
-        box-shadow: var(--shadow-sm);
-    }
-
-    .filters-grid {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: var(--spacing-lg);
-        align-items: end;
-    }
-
-    .filter-group {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-sm);
-    }
-
-    .filter-label {
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--color-text);
-    }
-
-    .filter-input, .filter-select {
-        padding: var(--spacing-sm) var(--spacing-md);
-        border: 2px solid var(--color-border);
-        border-radius: var(--radius-md);
-        font-size: 14px;
-        background: var(--color-bg);
-        color: var(--color-text);
-        transition: border-color 0.2s ease;
-    }
-
-    .filter-input:focus, .filter-select:focus {
-        outline: none;
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
-    }
-
-    .btn-filter {
-        background: var(--color-primary);
-        color: white;
-        border: none;
-        padding: var(--spacing-sm) var(--spacing-lg);
-        border-radius: var(--radius-md);
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .btn-filter:hover {
-        background: var(--color-primary-hover);
-        transform: translateY(-1px);
-    }
-
-    .users-table-container {
-        background: var(--color-bg);
-        border-radius: var(--radius-xl);
-        border: 1px solid var(--color-border);
-        box-shadow: var(--shadow-sm);
-        overflow: hidden;
-    }
-
-    .users-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .users-table th {
-        background: var(--color-bg-secondary);
-        padding: var(--spacing-md) var(--spacing-lg);
-        text-align: left;
-        font-weight: 600;
-        font-size: 14px;
-        color: var(--color-text);
-        border-bottom: 1px solid var(--color-border);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .users-table td {
-        padding: var(--spacing-md) var(--spacing-lg);
-        border-bottom: 1px solid var(--color-border);
-        color: var(--color-text-secondary);
-    }
-
-    .users-table tr:hover {
-        background: var(--color-bg-secondary);
     }
 
     .user-name {
@@ -247,126 +116,16 @@ $stats = [
         color: var(--color-text-muted);
     }
 
-    .status-badge {
-        padding: var(--spacing-xs) var(--spacing-sm);
-        border-radius: var(--radius-sm);
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .status-active {
-        background: var(--color-success);
-        color: white;
-    }
-
-    .status-archived {
-        background: var(--color-text-muted);
-        color: white;
-    }
-
-    .admin-badge {
-        background: var(--color-primary);
-        color: white;
-        padding: var(--spacing-xs) var(--spacing-sm);
-        border-radius: var(--radius-sm);
-        font-size: 10px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
     .user-actions {
         display: flex;
         gap: var(--spacing-sm);
         align-items: center;
     }
 
-    .btn-action {
-        padding: var(--spacing-xs) var(--spacing-sm);
-        border-radius: var(--radius-sm);
-        font-size: 12px;
-        font-weight: 500;
-        text-decoration: none;
-        border: none;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .btn-view {
-        background: var(--color-primary);
-        color: white;
-    }
-
-    .btn-view:hover {
-        background: var(--color-primary-hover);
-        transform: translateY(-1px);
-    }
-
-    .btn-archive {
-        background: var(--color-warning);
-        color: white;
-    }
-
-    .btn-archive:hover {
-        background: #e0a800;
-        transform: translateY(-1px);
-    }
-
-    .btn-unarchive {
-        background: var(--color-success);
-        color: white;
-    }
-
-    .btn-unarchive:hover {
-        background: #2e7d32;
-        transform: translateY(-1px);
-    }
-
-    .btn-admin {
-        background: var(--color-accent);
-        color: white;
-    }
-
-    .btn-admin:hover {
-        background: #6d4c91;
-        transform: translateY(-1px);
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: var(--spacing-2xl);
-        color: var(--color-text-secondary);
-    }
-
-    .empty-state-icon {
-        font-size: 48px;
-        margin-bottom: var(--spacing-lg);
-        opacity: 0.5;
-    }
-
     @media (max-width: 768px) {
-        .filters-grid {
-            grid-template-columns: 1fr;
-            gap: var(--spacing-md);
-        }
-
-        .stats-cards {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .users-table-container {
-            overflow-x: auto;
-        }
-
         .user-actions {
             flex-direction: column;
             align-items: stretch;
-        }
-
-        .btn-action {
-            text-align: center;
         }
     }
 </style>

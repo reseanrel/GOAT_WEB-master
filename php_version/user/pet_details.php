@@ -343,13 +343,9 @@ $medicalRecords = $stmt->fetchAll();
 
 <div class="pet-details">
     <div class="pet-header">
-        <?php if ($pet['photo'] && file_exists("../uploads/{$pet['photo']}")): ?>
-            <img src="../uploads/<?php echo htmlspecialchars($pet['photo_url']); ?>" alt="Pet Photo" class="pet-image-large">
-        <?php else: ?>
-            <div class="pet-image-placeholder">
-                <i class="fas fa-paw"></i>
-            </div>
-        <?php endif; ?>
+        <div class="pet-image-placeholder">
+            <i class="fas fa-paw fa-3x"></i>
+        </div>
 
         <div class="pet-info">
             <h1><?php echo htmlspecialchars($pet['name']); ?></h1>

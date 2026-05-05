@@ -17,29 +17,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $gender = sanitizeInput($_POST['gender']);
     $availableForAdoption = isset($_POST['for_adoption']) ? 1 : 0;
 
-    $photoPath = null;
-
-    // Handle file upload
-    if (isset($_FILES['pet_photo']) && $_FILES['pet_photo']['error'] == UPLOAD_ERR_OK) {
-        $uploadDir = '../uploads/';
-        $fileName = basename($_FILES['pet_photo']['name']);
-        $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-        $allowedExts = ['jpg', 'jpeg', 'png', 'gif'];
-
-        if (in_array($fileExt, $allowedExts)) {
-            $newFileName = uniqid('pet_') . '.' . $fileExt;
-            $uploadPath = $uploadDir . $newFileName;
-
-            if (move_uploaded_file($_FILES['pet_photo']['tmp_name'], $uploadPath)) {
-                $photoPath = $newFileName;
-            } else {
-                $errors[] = 'Failed to upload photo';
-            }
-        } else {
-            $errors[] = 'Invalid file type. Only JPG, PNG, and GIF are allowed.';
-        }
-    }
-
     $errors = [];
 
     if (empty($name)) {
@@ -56,10 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         try {
             $stmt = $conn->prepare("
-                INSERT INTO pets (name, category, pet_type, age, color, gender, owner_id, available_for_adoption, photo_url, status, registered_on)
+                INSERT INTO pets (name, category, pet_type, age, color, gender, owner_id, available_for_adoption, status, registered_on)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
             ");
-            $stmt->execute([$name, $category, $petType, $age, $color, $gender, $_SESSION['user_id'], $availableForAdoption, $photoPath]);
+            $stmt->execute([$name, $category, $petType, $age, $color, $gender, $_SESSION['user_id'], $availableForAdoption]);
 
             $_SESSION['success'] = "Pet '$name' registered successfully and is pending admin approval!";
             header('Location: dashboard.php');
@@ -79,142 +56,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php include '../includes/header.php'; ?>
 
 <style>
-    :root {
-        --primary-color: #4F46E5;
-        --primary-hover: #3730a3;
-        --bg-light: #f8fafc;
-        --card-bg: #ffffff;
-        --text-primary: #1e293b;
-        --text-secondary: #64748b;
-        --border-color: #e2e8f0;
-        --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        --radius: 12px;
-        --transition: all 0.2s ease;
-    }
-
-    body {
-        background-color: var(--bg-light) !important;
-    }
-
-    .registration-container {
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem 1rem;
-    }
-
-    .registration-card {
-        background: var(--card-bg);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        padding: 2.5rem;
-        width: 100%;
-        max-width: 800px;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .registration-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, var(--primary-color), #8b5cf6);
-    }
-
-    .form-header {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-
-    .form-header h1 {
-        color: var(--text-primary);
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-    }
-
-    .form-header p {
-        color: var(--text-secondary);
-        font-size: 1rem;
-        margin: 0;
-    }
-
-    .image-upload-section {
-        margin-bottom: 2rem;
-        text-align: center;
-    }
-
-    .image-upload-container {
-        position: relative;
-        width: 120px;
-        height: 120px;
-        margin: 0 auto 1rem;
-        border-radius: 50%;
-        border: 3px dashed var(--border-color);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: var(--transition);
-        overflow: hidden;
-    }
-
-    .image-upload-container:hover {
-        border-color: var(--primary-color);
-        background-color: rgba(79, 70, 229, 0.05);
-    }
-
-    .image-upload-container.has-image {
-        border-style: solid;
-        border-color: var(--primary-color);
-    }
-
-    .image-preview {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 50%;
-        display: none;
-    }
-
-    .image-preview.show {
-        display: block;
-    }
-
-    .upload-icon {
-        font-size: 2.5rem;
-        color: var(--text-secondary);
-        transition: var(--transition);
-    }
-
-    .image-upload-container:hover .upload-icon {
-        color: var(--primary-color);
-        transform: scale(1.1);
-    }
-
-    .upload-text {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        margin-top: 0.5rem;
-    }
-
-    #pet_photo {
-        position: absolute;
-        opacity: 0;
-        width: 100%;
-        height: 100%;
-        cursor: pointer;
-    }
-
     .form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-        margin-bottom: 2rem;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-input, .form-select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 16px;
+        background: white;
+    }
+
+    .form-select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        padding-right: 2rem;
+    }
+
+    .toggle-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+    }
+
+    .toggle-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .toggle-switch {
+        width: 36px;
+        height: 20px;
+        background: #d1d5db;
+        border-radius: 20px;
+        position: relative;
+        transition: background-color 0.2s;
+    }
+
+
+
+    .btn-primary {
+        width: 100%;
+        padding: 0.75rem;
+        background: #4f46e5;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 1rem;
+    }
+
+    .required {
+        color: #ef4444;
     }
 
     @media (max-width: 768px) {
@@ -222,341 +142,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             grid-template-columns: 1fr;
         }
     }
-
-    .form-group {
-        position: relative;
-    }
-
-    .form-label {
-        display: block;
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-    }
-
-    .form-input {
-        width: 100%;
-        padding: 0.875rem 1rem 0.875rem 3rem;
-        border: 2px solid var(--border-color);
-        border-radius: 8px;
-        font-size: 1rem;
-        color: var(--text-primary);
-        background-color: var(--card-bg);
-        transition: var(--transition);
-        font-family: inherit;
-    }
-
-    .form-input:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-    }
-
-    .form-input::placeholder {
-        color: var(--text-secondary);
-    }
-
-    .form-select {
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-        background-position: right 0.75rem center;
-        background-repeat: no-repeat;
-        background-size: 1.5em 1.5em;
-        padding-right: 3rem;
-    }
-
-    .input-icon {
-        position: absolute;
-        left: 0.875rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--text-secondary);
-        font-size: 1.125rem;
-        z-index: 1;
-    }
-
-    .toggle-container {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1.5rem;
-        border: 2px solid var(--border-color);
-        border-radius: 8px;
-        background-color: var(--card-bg);
-        transition: var(--transition);
-        cursor: pointer;
-    }
-
-    .toggle-container:hover {
-        border-color: var(--primary-color);
-    }
-
-    .toggle-label {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 0;
-    }
-
-    .toggle-switch {
-        position: relative;
-        width: 50px;
-        height: 24px;
-        background-color: var(--border-color);
-        border-radius: 12px;
-        transition: var(--transition);
-    }
-
-    .toggle-switch::after {
-        content: '';
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 20px;
-        height: 20px;
-        background-color: white;
-        border-radius: 50%;
-        transition: var(--transition);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-
-    .toggle-container.active .toggle-switch {
-        background-color: var(--primary-color);
-    }
-
-    .toggle-container.active .toggle-switch::after {
-        transform: translateX(26px);
-    }
-
-    .form-actions {
-        display: flex;
-        gap: 1rem;
-        justify-content: flex-end;
-        margin-top: 2rem;
-    }
-
-    .btn {
-        padding: 0.875rem 2rem;
-        border-radius: 8px;
-        font-size: 1rem;
-        font-weight: 600;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        transition: var(--transition);
-        cursor: pointer;
-        border: none;
-        font-family: inherit;
-    }
-
-    .btn-primary {
-        background-color: var(--primary-color);
-        color: white;
-    }
-
-    .btn-primary:hover {
-        background-color: var(--primary-hover);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-    }
-
-    .btn-outline {
-        background-color: transparent;
-        color: var(--text-secondary);
-        border: 2px solid var(--border-color);
-    }
-
-    .btn-outline:hover {
-        background-color: var(--text-secondary);
-        color: white;
-        transform: translateY(-1px);
-    }
-
-    @media (max-width: 640px) {
-        .registration-card {
-            padding: 1.5rem;
-        }
-
-        .form-header h1 {
-            font-size: 1.5rem;
-        }
-
-        .form-actions {
-            flex-direction: column;
-        }
-
-        .btn {
-            width: 100%;
-        }
-    }
-
-    .required {
-        color: #ef4444;
-    }
 </style>
 
-<div class="registration-container">
-    <div class="registration-card">
-        <div class="form-header">
-            <h1><i class="fas fa-paw" style="color: var(--primary-color); margin-right: 0.5rem;"></i>Register New Pet</h1>
-            <p>Add your pet to the registration system. Your pet will be pending admin approval.</p>
-        </div>
+<div style="max-width: 600px; margin: 2rem auto; padding: 0 1rem;">
+    <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <h1 style="text-align: center; color: #374151; margin-bottom: 0.5rem;">Register New Pet</h1>
+        <p style="text-align: center; color: #6b7280; margin-bottom: 2rem;">Add your pet to the registration system</p>
 
-        <form method="POST" enctype="multipart/form-data">
-            <!-- Image Upload Section -->
-            <div class="image-upload-section">
-                <div class="image-upload-container" onclick="document.getElementById('pet_photo').click()">
-                    <img id="imagePreview" class="image-preview" src="" alt="Pet Preview">
-                    <i class="fas fa-camera upload-icon"></i>
-                    <input type="file" id="pet_photo" name="pet_photo" accept="image/*" style="display: none;">
-                </div>
-                <p class="upload-text">Click to upload pet photo</p>
-            </div>
-
-            <!-- Form Fields -->
+        <form method="POST">
             <div class="form-grid">
                 <div class="form-group">
-                    <label class="form-label" for="pet_name">
-                        Pet Name <span class="required">*</span>
-                    </label>
-                    <i class="fas fa-tag input-icon"></i>
-                    <input type="text" class="form-input" id="pet_name" name="pet_name" placeholder="Enter pet name"
-                           value="<?php echo isset($_POST['pet_name']) ? htmlspecialchars($_POST['pet_name']) : ''; ?>" required>
+                    <label class="form-label" for="pet_name">Pet Name <span class="required">*</span></label>
+                    <input type="text" class="form-input" id="pet_name" name="pet_name" placeholder="Enter pet name" required>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="pet_category">
-                        Category <span class="required">*</span>
-                    </label>
-                    <i class="fas fa-list input-icon"></i>
-                    <select class="form-input form-select" id="pet_category" name="pet_category" required>
+                    <label class="form-label">Category <span class="required">*</span></label>
+                    <select class="form-select" name="pet_category" required>
                         <option value="">Select Category</option>
-                        <option value="Dog" <?php echo (isset($_POST['pet_category']) && $_POST['pet_category'] == 'Dog') ? 'selected' : ''; ?>>🐕 Dog</option>
-                        <option value="Cat" <?php echo (isset($_POST['pet_category']) && $_POST['pet_category'] == 'Cat') ? 'selected' : ''; ?>>🐱 Cat</option>
-                        <option value="Bird" <?php echo (isset($_POST['pet_category']) && $_POST['pet_category'] == 'Bird') ? 'selected' : ''; ?>>🐦 Bird</option>
-                        <option value="Other" <?php echo (isset($_POST['pet_category']) && $_POST['pet_category'] == 'Other') ? 'selected' : ''; ?>>🐾 Other</option>
+                        <option value="Dog">Dog</option>
+                        <option value="Cat">Cat</option>
+                        <option value="Bird">Bird</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="pet_type">Breed/Type</label>
-                    <i class="fas fa-dna input-icon"></i>
-                    <input type="text" class="form-input" id="pet_type" name="pet_type" placeholder="e.g., Golden Retriever"
-                           value="<?php echo isset($_POST['pet_type']) ? htmlspecialchars($_POST['pet_type']) : ''; ?>">
+                    <label class="form-label">Breed/Type</label>
+                    <input type="text" class="form-input" name="pet_type" placeholder="e.g., Golden Retriever">
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="age">Age (years)</label>
-                    <i class="fas fa-birthday-cake input-icon"></i>
-                    <input type="number" class="form-input" id="age" name="age" placeholder="Enter age" min="0" max="30"
-                           value="<?php echo isset($_POST['age']) ? htmlspecialchars($_POST['age']) : ''; ?>">
+                    <label class="form-label">Age (years)</label>
+                    <input type="number" class="form-input" name="age" min="0" max="30">
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="color">Color</label>
-                    <i class="fas fa-palette input-icon"></i>
-                    <input type="text" class="form-input" id="color" name="color" placeholder="e.g., Brown & White"
-                           value="<?php echo isset($_POST['color']) ? htmlspecialchars($_POST['color']) : ''; ?>">
+                    <label class="form-label">Color</label>
+                    <input type="text" class="form-input" name="color" placeholder="e.g., Brown & White">
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="gender">Gender</label>
-                    <i class="fas fa-venus-mars input-icon"></i>
-                    <select class="form-input form-select" id="gender" name="gender">
+                    <label class="form-label">Gender</label>
+                    <select class="form-select" name="gender">
                         <option value="">Select Gender</option>
-                        <option value="Male" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'Male') ? 'selected' : ''; ?>>♂️ Male</option>
-                        <option value="Female" <?php echo (isset($_POST['gender']) && $_POST['gender'] == 'Female') ? 'selected' : ''; ?>>♀️ Female</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
                     </select>
                 </div>
+
+
             </div>
 
-            <!-- Toggle Switch -->
-            <div class="toggle-container <?php echo isset($_POST['for_adoption']) ? 'active' : ''; ?>" onclick="toggleAdoption()">
-                <p class="toggle-label">Available for Adoption</p>
-                <div class="toggle-switch"></div>
-                <input type="checkbox" id="for_adoption" name="for_adoption" style="display: none;"
-                       <?php echo isset($_POST['for_adoption']) ? 'checked' : ''; ?>>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="checkbox" name="for_adoption" style="width: 16px; height: 16px;">
+                    Available for Adoption
+                </label>
             </div>
 
-            <!-- Form Actions -->
-            <div class="form-actions">
-                <a href="dashboard.php" class="btn btn-outline">
-                    <i class="fas fa-times"></i>
-                    Cancel
-                </a>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-paw"></i>
-                    Register Pet
-                </button>
-            </div>
+            <button type="submit" class="btn-primary">Register Pet</button>
         </form>
+
+        <p style="text-align: center; margin-top: 1rem; color: #6b7280;">
+            <a href="dashboard.php" style="color: #4f46e5; text-decoration: none;">← Back to Dashboard</a>
+        </p>
     </div>
 </div>
 
 <script>
-    // Image preview functionality
-    document.getElementById('pet_photo').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        const preview = document.getElementById('imagePreview');
-        const container = document.querySelector('.image-upload-container');
+// Basic form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const requiredFields = ['pet_name', 'pet_category'];
+    let isValid = true;
 
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                preview.src = e.target.result;
-                preview.classList.add('show');
-                container.classList.add('has-image');
-            };
-            reader.readAsDataURL(file);
+    requiredFields.forEach(fieldName => {
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        if (!field.value.trim()) {
+            field.style.borderColor = '#ef4444';
+            isValid = false;
         } else {
-            preview.src = '';
-            preview.classList.remove('show');
-            container.classList.remove('has-image');
+            field.style.borderColor = '#d1d5db';
         }
     });
 
-    // Toggle switch functionality
-    function toggleAdoption() {
-        const container = document.querySelector('.toggle-container');
-        const checkbox = document.getElementById('for_adoption');
-
-        container.classList.toggle('active');
-        checkbox.checked = !checkbox.checked;
+    if (!isValid) {
+        e.preventDefault();
     }
-
-    // Initialize toggle state on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        const checkbox = document.getElementById('for_adoption');
-        const container = document.querySelector('.toggle-container');
-
-        if (checkbox.checked) {
-            container.classList.add('active');
-        }
-    });
-
-    // Form validation enhancement
-    document.querySelector('form').addEventListener('submit', function(e) {
-        const requiredFields = ['pet_name', 'pet_category'];
-        let isValid = true;
-
-        requiredFields.forEach(fieldId => {
-            const field = document.getElementById(fieldId);
-            if (!field.value.trim()) {
-                field.style.borderColor = '#ef4444';
-                isValid = false;
-            } else {
-                field.style.borderColor = 'var(--border-color)';
-            }
-        });
-
-        if (!isValid) {
-            e.preventDefault();
-            // Could add error message here
-        }
-    });
+});
 </script>
 
 <?php include '../includes/footer.php'; ?>

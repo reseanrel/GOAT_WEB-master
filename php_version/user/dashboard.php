@@ -65,26 +65,68 @@ $userPets = getUserPets($_SESSION['user_id']);
 
     .pets-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: var(--spacing-xl);
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        padding: 20px;
     }
 
     .pet-card {
-        background: var(--color-bg);
-        border-radius: var(--radius-xl);
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         overflow: hidden;
-        box-shadow: var(--shadow-md);
+        transition: transform 0.2s;
+    }
+
+    .pet-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .pet-image {
+        height: 150px;
+        background: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        font-size: 48px;
+    }
+
+    @media (max-width: 1100px) {
+        .pets-grid {
+            grid-template-columns: repeat(auto-fit, 200px);
+            justify-content: center;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .pets-grid {
+            grid-template-columns: repeat(auto-fit, 200px);
+            gap: 12px;
+            padding: 0 var(--spacing-md);
+        }
+    }
+
+    .pet-card {
+        width: 200px;
+        height: 260px;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         border: 1px solid var(--color-border);
         transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
     }
 
     .pet-card:hover {
         transform: translateY(-4px);
-        box-shadow: var(--shadow-lg);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
     }
 
     .pet-image {
-        height: 200px;
+        height: 120px;
         background: var(--color-bg-secondary);
         display: flex;
         align-items: center;
@@ -101,7 +143,7 @@ $userPets = getUserPets($_SESSION['user_id']);
 
     .pet-image .no-image {
         color: var(--color-text-muted);
-        font-size: 48px;
+        font-size: 32px;
     }
 
     .pet-badges {
@@ -138,79 +180,137 @@ $userPets = getUserPets($_SESSION['user_id']);
     }
 
     .pet-content {
-        padding: var(--spacing-xl);
+        padding: 15px;
     }
 
     .pet-name {
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--color-text);
-        margin-bottom: var(--spacing-md);
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .pet-category {
+        display: inline-block;
+        background: #007bff;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-bottom: 10px;
     }
 
     .pet-details {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: var(--spacing-sm);
-        margin-bottom: var(--spacing-lg);
+        margin-bottom: 15px;
     }
 
     .pet-detail {
+        margin-bottom: 8px;
         font-size: 14px;
-        color: var(--color-text-secondary);
+        color: #666;
     }
 
-    .pet-detail strong {
+    .pet-name {
+        font-size: 16px;
+        font-weight: 700;
         color: var(--color-text);
-        font-weight: 500;
+        margin-bottom: 8px;
+        text-align: center;
+    }
+
+    .pet-category {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--color-primary);
+        text-align: center;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .pet-details {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 12px;
+        flex: 1;
+    }
+
+    .pet-detail {
+        font-size: 13px;
+        color: var(--color-text-secondary);
+        line-height: 1.4;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .pet-detail-label {
+        font-weight: 600;
+        color: var(--color-text);
+        min-width: 50px;
+    }
+
+    .pet-detail-value {
+        color: var(--color-text-secondary);
+        flex: 1;
+        text-align: right;
+    }
+
+    .pet-status {
+        text-align: center;
+        margin-bottom: 15px;
+        font-weight: bold;
+        color: #28a745;
     }
 
     .pet-actions {
         display: flex;
-        gap: var(--spacing-sm);
+        gap: 10px;
         flex-wrap: wrap;
     }
 
     .btn-pet {
         flex: 1;
-        min-width: 120px;
-        padding: var(--spacing-sm) var(--spacing-md);
-        border-radius: var(--radius-lg);
-        font-size: 14px;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 12px;
         font-weight: 500;
         text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--spacing-xs);
-        transition: all 0.2s ease;
-        border: 2px solid transparent;
+        text-align: center;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.2s;
     }
 
     .btn-pet.primary {
-        background: var(--color-primary);
+        background: #007bff;
         color: white;
     }
 
     .btn-pet.primary:hover {
-        background: var(--color-primary-hover);
-        transform: translateY(-1px);
+        background: #0056b3;
     }
 
     .btn-pet.secondary {
-        background: var(--color-bg-secondary);
-        color: var(--color-text);
-        border-color: var(--color-border);
+        background: #6c757d;
+        color: white;
     }
 
     .btn-pet.secondary:hover {
-        background: var(--color-text);
-        color: var(--color-bg);
+        background: #545b62;
     }
 
     .btn-pet.warning {
-        background: var(--color-warning);
+        background: #dc3545;
         color: white;
+    }
+
+    .btn-pet.warning:hover {
+        background: #c82333;
     }
 
     .btn-pet.warning:hover {
@@ -370,13 +470,29 @@ $totalRecords = $stmt->fetch()['total'];
         <?php foreach ($userPets as $pet): ?>
             <div class="pet-card">
                 <div class="pet-image">
-                    <?php if ($pet['photo_url'] && file_exists("../uploads/{$pet['photo_url']}")): ?>
-                        <img src="../uploads/<?php echo htmlspecialchars($pet['photo_url']); ?>" alt="Pet Photo">
-                    <?php else: ?>
-                        <div class="no-image">
-                            <i class="fas fa-paw"></i>
-                        </div>
-                    <?php endif; ?>
+                    <i class="fas fa-paw"></i>
+                </div>
+
+                <div class="pet-content">
+                    <div class="pet-category"><?php echo htmlspecialchars($pet['category'] ?? 'PET'); ?></div>
+
+                    <h3 class="pet-name"><?php echo htmlspecialchars($pet['name']); ?></h3>
+
+                    <div class="pet-details">
+                        <div class="pet-detail"><strong>Age:</strong> <?php echo $pet['age'] ? htmlspecialchars($pet['age']) . ' years' : 'Unknown'; ?></div>
+                        <div class="pet-detail"><strong>Gender:</strong> <?php echo htmlspecialchars($pet['gender'] ?? 'Unknown'); ?></div>
+                        <div class="pet-detail"><strong>Type:</strong> <?php echo htmlspecialchars($pet['pet_type'] ?? 'Unknown'); ?></div>
+                        <div class="pet-detail"><strong>Color:</strong> <?php echo htmlspecialchars($pet['color'] ?? 'Unknown'); ?></div>
+                        <div class="pet-status"><strong>Status:</strong> <?php echo ucfirst($pet['status']); ?></div>
+                    </div>
+
+                    <div class="pet-actions">
+                        <a href="pet_details.php?id=<?php echo $pet['id']; ?>" class="btn-pet primary">View Details</a>
+                        <a href="medical_records.php?pet_id=<?php echo $pet['id']; ?>" class="btn-pet secondary">Records</a>
+                        <a href="#" onclick="reportLostPet(<?php echo $pet['id']; ?>, '<?php echo htmlspecialchars($pet['name']); ?>')" class="btn-pet warning">Report Lost</a>
+                    </div>
+                </div>
+            </div>
 
                     <div class="pet-badges">
                         <?php if ($pet['lost']): ?>
@@ -392,12 +508,54 @@ $totalRecords = $stmt->fetch()['total'];
                 </div>
 
                 <div class="pet-content">
+                    <div class="pet-category"><?php echo htmlspecialchars($pet['category'] ?? 'Unknown'); ?></div>
                     <h3 class="pet-name"><?php echo htmlspecialchars($pet['name']); ?></h3>
 
                     <div class="pet-details">
                         <div class="pet-detail">
-                            <strong>Category:</strong> <?php echo htmlspecialchars($pet['category'] ?? 'Not specified'); ?>
+                            <span class="pet-detail-label">Age:</span>
+                            <span class="pet-detail-value"><?php echo $pet['age'] ? htmlspecialchars($pet['age']) . ' yrs' : 'Unknown'; ?></span>
                         </div>
+                        <div class="pet-detail">
+                            <span class="pet-detail-label">Gender:</span>
+                            <span class="pet-detail-value"><?php echo htmlspecialchars($pet['gender'] ?? 'Unknown'); ?></span>
+                        </div>
+                        <div class="pet-detail">
+                            <span class="pet-detail-label">Type:</span>
+                            <span class="pet-detail-value"><?php echo htmlspecialchars($pet['pet_type'] ?? 'Unknown'); ?></span>
+                        </div>
+                        <div class="pet-detail">
+                            <span class="pet-detail-label">Color:</span>
+                            <span class="pet-detail-value"><?php echo htmlspecialchars($pet['color'] ?? 'Unknown'); ?></span>
+                        </div>
+                        <div class="pet-detail">
+                            <span class="pet-detail-label">Status:</span>
+                            <span class="pet-detail-value">
+                                <span style="
+                                    display: inline-block;
+                                    width: 8px;
+                                    height: 8px;
+                                    border-radius: 50%;
+                                    background: <?php echo $pet['status'] === 'approved' ? 'var(--color-success)' : 'var(--color-warning)'; ?>;
+                                    margin-right: 4px;
+                                "></span>
+                                <?php echo ucfirst($pet['status']); ?>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="pet-actions">
+                        <a href="pet_details.php?id=<?php echo $pet['id']; ?>" class="btn-pet primary">
+                            View Details
+                        </a>
+                        <a href="medical_records.php?pet_id=<?php echo $pet['id']; ?>" class="btn-pet secondary">
+                            Records
+                        </a>
+                        <a href="#" onclick="reportLostPet(<?php echo $pet['id']; ?>, '<?php echo htmlspecialchars($pet['name']); ?>')" class="btn-pet warning">
+                            Report Lost
+                        </a>
+                    </div>
+                </div>
                         <div class="pet-detail">
                             <strong>Type:</strong> <?php echo htmlspecialchars($pet['pet_type'] ?? 'Not specified'); ?>
                         </div>

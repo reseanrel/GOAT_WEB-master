@@ -6,50 +6,160 @@ requireAdmin();
 $db = Database::getInstance();
 $conn = $db->getConnection();
 
-// Get statistics
-$stmt = $conn->query("SELECT COUNT(*) as total FROM users WHERE archived = 0");
-$totalUsers = $stmt->fetch()['total'];
+// Get statistics (with error handling)
+$totalUsers = 0;
+$userGrowth = 0;
+$totalPets = 0;
+$petGrowth = 0;
+$pendingPets = 0;
+$lostPets = 0;
+$adoptionPets = 0;
 
-$stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE archived = 0 AND status = 'approved'");
-$totalPets = $stmt->fetch()['total'];
+try {
+    $stmt = $conn->query("SELECT COUNT(*) as total FROM users WHERE archived = 0");
+    $totalUsers = $stmt->fetch()['total'];
+} catch (Exception $e) {
+    // Database not set up yet
+    $totalUsers = 0;
+}
 
-$stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE status = 'pending' AND archived = 0");
-$pendingPets = $stmt->fetch()['total'];
+try {
+    // Calculate user growth (last 30 days vs previous 30 days)
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE archived = 0 AND created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+    $stmt->execute();
+    $currentUsers = $stmt->fetchColumn();
 
-$stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE lost = 1 AND archived = 0 AND status = 'approved' AND deceased = 0");
-$lostPets = $stmt->fetch()['total'];
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE archived = 0 AND created_at BETWEEN DATE_SUB(CURDATE(), INTERVAL 60 DAY) AND DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+    $stmt->execute();
+    $previousUsers = $stmt->fetchColumn();
 
-$stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE available_for_adoption = 1 AND archived = 0 AND status = 'approved' AND deceased = 0");
-$adoptionPets = $stmt->fetch()['total'];
+    if ($previousUsers > 0) {
+        $userGrowth = round((($currentUsers - $previousUsers) / $previousUsers) * 100, 1);
+    }
 
-// Get monthly registrations for the last 12 months
-$stmt = $conn->prepare("
-    SELECT
-        DATE_FORMAT(registered_on, '%Y-%m-01') as month,
-        COUNT(*) as count
-    FROM pets
-    WHERE archived = 0 AND status = 'approved'
-        AND registered_on >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-    GROUP BY DATE_FORMAT(registered_on, '%Y-%m-01')
-    ORDER BY DATE_FORMAT(registered_on, '%Y-%m-01')
-");
-$stmt->execute();
-$monthlyData = $stmt->fetchAll();
+    $stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE archived = 0 AND status = 'approved'");
+    $totalPets = $stmt->fetch()['total'];
+
+    // Calculate pet registration growth
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM pets WHERE archived = 0 AND status = 'approved' AND registered_on >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+    $stmt->execute();
+    $currentPets = $stmt->fetchColumn();
+
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM pets WHERE archived = 0 AND status = 'approved' AND registered_on BETWEEN DATE_SUB(CURDATE(), INTERVAL 60 DAY) AND DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+    $stmt->execute();
+    $previousPets = $stmt->fetchColumn();
+
+    if ($previousPets > 0) {
+        $petGrowth = round((($currentPets - $previousPets) / $previousPets) * 100, 1);
+    }
+
+    $stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE status = 'pending' AND archived = 0");
+    $pendingPets = $stmt->fetch()['total'];
+
+    $stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE lost = 1 AND archived = 0 AND status = 'approved' AND deceased = 0");
+    $lostPets = $stmt->fetch()['total'];
+
+    $stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE available_for_adoption = 1 AND archived = 0 AND status = 'approved' AND deceased = 0");
+    $adoptionPets = $stmt->fetch()['total'];
+} catch (Exception $e) {
+    // Database queries failed - use defaults
+}
+
+// Initialize empty arrays for analytics
+$monthlyData = [];
+$userMonthlyData = [];
+$categoryData = [];
+$recentActivities = [];
+
+try {
+    // Get monthly registrations for the last 12 months
+    $stmt = $conn->prepare("
+        SELECT
+            DATE_FORMAT(registered_on, '%Y-%m-01') as month,
+            COUNT(*) as count
+        FROM pets
+        WHERE archived = 0 AND status = 'approved'
+            AND registered_on >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        GROUP BY DATE_FORMAT(registered_on, '%Y-%m-01')
+        ORDER BY DATE_FORMAT(registered_on, '%Y-%m-01')
+    ");
+    $stmt->execute();
+    $monthlyData = $stmt->fetchAll();
+
+    // Get user registration trends (last 12 months)
+    $stmt = $conn->prepare("
+        SELECT
+            DATE_FORMAT(created_at, '%Y-%m-01') as month,
+            COUNT(*) as count
+        FROM users
+        WHERE archived = 0
+            AND created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        GROUP BY DATE_FORMAT(created_at, '%Y-%m-01')
+        ORDER BY DATE_FORMAT(created_at, '%Y-%m-01')
+    ");
+    $stmt->execute();
+    $userMonthlyData = $stmt->fetchAll();
+
+    // Get pet category distribution
+    $stmt = $conn->query("
+        SELECT category, COUNT(*) as count
+        FROM pets
+        WHERE archived = 0 AND status = 'approved' AND category IS NOT NULL AND category != ''
+        GROUP BY category
+        ORDER BY count DESC
+        LIMIT 5
+    ");
+    $categoryData = $stmt->fetchAll();
+
+    // Get recent activities (last 10)
+    $stmt = $conn->prepare("
+        SELECT 'pet_approved' as type, p.name as title, u.full_name as user_name,
+               p.approved_at as activity_date, 'Pet registration approved' as description
+        FROM pets p
+        JOIN users u ON p.owner_id = u.id
+        WHERE p.status = 'approved' AND p.approved_at IS NOT NULL
+        UNION ALL
+        SELECT 'user_registered' as type, u.full_name as title, u.full_name as user_name,
+               u.created_at as activity_date, 'New user registered' as description
+        FROM users u
+        WHERE u.archived = 0
+        UNION ALL
+        SELECT 'pet_reported_lost' as type, p.name as title, u.full_name as user_name,
+               p.updated_at as activity_date, 'Pet reported as lost' as description
+        FROM pets p
+        JOIN users u ON p.owner_id = u.id
+        WHERE p.lost = 1 AND p.archived = 0
+        ORDER BY activity_date DESC
+        LIMIT 10
+    ");
+    $stmt->execute();
+    $recentActivities = $stmt->fetchAll();
+} catch (Exception $e) {
+    // Database queries failed - use empty arrays
+}
 
 // Get recent pending pets
-$stmt = $conn->prepare("
-    SELECT p.*, u.full_name as owner_name
-    FROM pets p
-    JOIN users u ON p.owner_id = u.id
-    WHERE p.status = 'pending' AND p.archived = 0
-    ORDER BY p.registered_on DESC
-    LIMIT 5
-");
-$stmt->execute();
-$recentPending = $stmt->fetchAll();
+$recentPending = [];
+try {
+    $stmt = $conn->prepare("
+        SELECT p.*, u.full_name as owner_name
+        FROM pets p
+        JOIN users u ON p.owner_id = u.id
+        WHERE p.status = 'pending' AND p.archived = 0
+        ORDER BY p.registered_on DESC
+        LIMIT 5
+    ");
+    $stmt->execute();
+    $recentPending = $stmt->fetchAll();
+} catch (Exception $e) {
+    // Database query failed - use empty array
+}
 ?>
 
 <?php include '../includes/header.php'; ?>
+
+<link rel="stylesheet" href="admin.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
     .admin-dashboard {
@@ -282,39 +392,7 @@ $recentPending = $stmt->fetchAll();
         flex-shrink: 0;
     }
 
-    .btn-approve {
-        background: var(--color-success);
-        color: white;
-        border: none;
-        padding: var(--spacing-sm) var(--spacing-md);
-        border-radius: var(--radius-md);
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
 
-    .btn-approve:hover {
-        background: #2e7d32;
-        transform: translateY(-1px);
-    }
-
-    .btn-reject {
-        background: var(--color-error);
-        color: white;
-        border: none;
-        padding: var(--spacing-sm) var(--spacing-md);
-        border-radius: var(--radius-md);
-        font-size: 14px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .btn-reject:hover {
-        background: #c62828;
-        transform: translateY(-1px);
-    }
 
     .quick-actions {
         display: grid;
@@ -380,6 +458,148 @@ $recentPending = $stmt->fetchAll();
         }
     }
 
+    /* Analytics Section */
+    .analytics-section {
+        margin-bottom: var(--spacing-2xl);
+    }
+
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--spacing-xl);
+    }
+
+    .chart-container {
+        background: var(--color-bg);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--color-border);
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .chart-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--color-text);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .chart-canvas {
+        width: 100% !important;
+        height: 300px !important;
+    }
+
+    .category-breakdown {
+        background: var(--color-bg);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-xl);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--color-border);
+    }
+
+    .category-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-sm);
+        background: var(--color-bg-secondary);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--color-border);
+    }
+
+    .category-name {
+        font-weight: 500;
+        color: var(--color-text);
+    }
+
+    .category-count {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--color-primary);
+    }
+
+    .activities-feed {
+        background: var(--color-bg);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--color-border);
+        overflow: hidden;
+    }
+
+    .activity-item {
+        padding: var(--spacing-lg);
+        border-bottom: 1px solid var(--color-border);
+        display: flex;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+        transition: background-color 0.2s ease;
+    }
+
+    .activity-item:hover {
+        background: var(--color-bg-secondary);
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    .activity-icon.pet-approved { background: var(--color-success); }
+    .activity-icon.user-registered { background: var(--color-primary); }
+    .activity-icon.pet-reported-lost { background: var(--color-error); }
+
+    .activity-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .activity-title {
+        font-weight: 600;
+        color: var(--color-text);
+        margin-bottom: var(--spacing-xs);
+        font-size: 14px;
+    }
+
+    .activity-description {
+        color: var(--color-text-secondary);
+        font-size: 13px;
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .activity-time {
+        color: var(--color-text-muted);
+        font-size: 12px;
+    }
+
+    @media (max-width: 1024px) {
+        .analytics-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
     @media (max-width: 768px) {
         .admin-stats {
             grid-template-columns: 1fr;
@@ -408,8 +628,20 @@ $recentPending = $stmt->fetchAll();
 
 <div class="admin-dashboard">
     <div class="dashboard-welcome">
-        <h1 class="welcome-title">Welcome back, Administrator</h1>
-        <p class="welcome-subtitle">Manage the Pila Pet Registration System and oversee community operations</p>
+        <div>
+            <h1 class="welcome-title">Welcome back, Administrator</h1>
+            <p class="welcome-subtitle">Manage the Pila Pet Registration System and oversee community operations</p>
+        </div>
+        <div style="display: flex; gap: var(--spacing-md); align-items: center;">
+            <div style="font-size: 14px; color: var(--color-text-secondary);">
+                <i class="fas fa-clock"></i>
+                Last updated: <span id="lastUpdate"><?php echo date('M j, Y g:i A'); ?></span>
+            </div>
+            <button onclick="window.location.reload()" class="btn-action" style="background: var(--color-accent); color: white; font-size: 12px; padding: var(--spacing-xs) var(--spacing-sm);">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+        </div>
     </div>
 
     <div class="admin-stats">
@@ -421,7 +653,10 @@ $recentPending = $stmt->fetchAll();
                 <div class="stat-info">
                     <div class="stat-title">Total Users</div>
                     <span class="stat-value"><?php echo $totalUsers; ?></span>
-                    <div class="stat-change positive">Active members</div>
+                    <div class="stat-change <?php echo $userGrowth >= 0 ? 'positive' : 'negative'; ?>">
+                        <i class="fas fa-<?php echo $userGrowth >= 0 ? 'arrow-up' : 'arrow-down'; ?>"></i>
+                        <?php echo abs($userGrowth); ?>% this month
+                    </div>
                 </div>
             </div>
         </div>
@@ -434,7 +669,10 @@ $recentPending = $stmt->fetchAll();
                 <div class="stat-info">
                     <div class="stat-title">Total Pets</div>
                     <span class="stat-value"><?php echo $totalPets; ?></span>
-                    <div class="stat-change positive">Registered pets</div>
+                    <div class="stat-change <?php echo $petGrowth >= 0 ? 'positive' : 'negative'; ?>">
+                        <i class="fas fa-<?php echo $petGrowth >= 0 ? 'arrow-up' : 'arrow-down'; ?>"></i>
+                        <?php echo abs($petGrowth); ?>% this month
+                    </div>
                 </div>
             </div>
         </div>
@@ -474,6 +712,97 @@ $recentPending = $stmt->fetchAll();
                     <div class="stat-title">For Adoption</div>
                     <span class="stat-value"><?php echo $adoptionPets; ?></span>
                     <div class="stat-change positive">Finding homes</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Section -->
+    <div class="analytics-section">
+        <div class="analytics-grid">
+            <!-- Charts -->
+            <div>
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <i class="fas fa-chart-line"></i>
+                            Registration Trends
+                        </h3>
+                        <div style="display: flex; gap: var(--spacing-sm);">
+                            <button onclick="switchChart('pet')" id="petChartBtn" style="background: var(--color-primary); color: white; border: none; padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--radius-md); font-size: 12px; font-weight: 500; cursor: pointer;">Pets</button>
+                            <button onclick="switchChart('user')" id="userChartBtn" style="background: var(--color-bg-secondary); color: var(--color-text); border: 1px solid var(--color-border); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--radius-md); font-size: 12px; font-weight: 500; cursor: pointer;">Users</button>
+                        </div>
+                    </div>
+                    <canvas id="registrationChart" class="chart-canvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Category Breakdown & Activities -->
+            <div>
+                <div class="category-breakdown" style="margin-bottom: var(--spacing-xl);">
+                    <div class="panel-header" style="padding: 0 0 var(--spacing-lg) 0; border: none;">
+                        <h3 class="panel-title" style="font-size: 18px;">
+                            <i class="fas fa-chart-pie"></i>
+                            Pet Categories
+                        </h3>
+                    </div>
+                    <div>
+                        <?php if (empty($categoryData)): ?>
+                            <div style="text-align: center; padding: var(--spacing-xl); color: var(--color-text-secondary);">
+                                <i class="fas fa-chart-pie fa-2x" style="opacity: 0.5; margin-bottom: var(--spacing-md);"></i>
+                                <p>No category data available</p>
+                            </div>
+                        <?php else: ?>
+                            <?php foreach ($categoryData as $category): ?>
+                                <div class="category-item">
+                                    <span class="category-name"><?php echo htmlspecialchars(ucfirst($category['category'])); ?></span>
+                                    <span class="category-count"><?php echo $category['count']; ?></span>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="activities-feed">
+                    <div class="panel-header" style="padding: var(--spacing-lg); border-bottom: 1px solid var(--color-border);">
+                        <h3 class="panel-title" style="font-size: 18px; margin: 0;">
+                            <i class="fas fa-history"></i>
+                            Recent Activities
+                        </h3>
+                    </div>
+                    <div>
+                        <?php if (empty($recentActivities)): ?>
+                            <div style="text-align: center; padding: var(--spacing-2xl); color: var(--color-text-secondary);">
+                                <i class="fas fa-history fa-2x" style="opacity: 0.5; margin-bottom: var(--spacing-md);"></i>
+                                <p>No recent activities</p>
+                            </div>
+                        <?php else: ?>
+                            <?php foreach ($recentActivities as $activity): ?>
+                                <div class="activity-item">
+                                    <div class="activity-icon activity-icon-<?php echo str_replace('_', '-', $activity['type']); ?>">
+                                        <?php
+                                        switch ($activity['type']) {
+                                            case 'pet_approved':
+                                                echo '<i class="fas fa-check"></i>';
+                                                break;
+                                            case 'user_registered':
+                                                echo '<i class="fas fa-user-plus"></i>';
+                                                break;
+                                            case 'pet_reported_lost':
+                                                echo '<i class="fas fa-exclamation-triangle"></i>';
+                                                break;
+                                        }
+                                        ?>
+                                    </div>
+                                    <div class="activity-content">
+                                        <div class="activity-title"><?php echo htmlspecialchars($activity['title']); ?></div>
+                                        <div class="activity-description"><?php echo htmlspecialchars($activity['description']); ?></div>
+                                        <div class="activity-time"><?php echo date('M j, Y g:i A', strtotime($activity['activity_date'])); ?></div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -609,3 +938,141 @@ $recentPending = $stmt->fetchAll();
 </div>
 
 <?php include '../includes/footer.php'; ?>
+
+<script>
+// Chart data
+const petMonthlyData = <?php echo json_encode($monthlyData); ?>;
+const userMonthlyData = <?php echo json_encode($userMonthlyData); ?>;
+
+// Prepare data for charts
+function prepareChartData(data, label) {
+    const labels = [];
+    const values = [];
+
+    // Generate labels for last 12 months
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthKey = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-01';
+        labels.push(date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
+
+        const found = data.find(item => item.month === monthKey);
+        values.push(found ? parseInt(found.count) : 0);
+    }
+
+    return { labels, values, label };
+}
+
+let currentChart = 'pet';
+let chart = null;
+
+function createChart(type = 'pet') {
+    const ctx = document.getElementById('registrationChart').getContext('2d');
+
+    if (chart) {
+        chart.destroy();
+    }
+
+    const data = type === 'pet' ? petMonthlyData : userMonthlyData;
+    const preparedData = prepareChartData(data, type === 'pet' ? 'Pet Registrations' : 'User Registrations');
+
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: preparedData.labels,
+            datasets: [{
+                label: preparedData.label,
+                data: preparedData.values,
+                borderColor: 'var(--color-primary)',
+                backgroundColor: 'rgba(26, 115, 232, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: 'var(--color-primary)',
+                pointBorderColor: 'white',
+                pointBorderWidth: 2,
+                pointRadius: 6,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: 'var(--color-border)',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    displayColors: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'var(--color-border)'
+                    },
+                    ticks: {
+                        color: 'var(--color-text-secondary)',
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'var(--color-border)'
+                    },
+                    ticks: {
+                        color: 'var(--color-text-secondary)',
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
+            },
+            elements: {
+                point: {
+                    hoverBorderWidth: 3
+                }
+            }
+        }
+    });
+}
+
+function switchChart(type) {
+    currentChart = type;
+    createChart(type);
+
+    // Update button styles
+    const petBtn = document.getElementById('petChartBtn');
+    const userBtn = document.getElementById('userChartBtn');
+
+    if (type === 'pet') {
+        petBtn.style.background = 'var(--color-primary)';
+        petBtn.style.color = 'white';
+        petBtn.style.border = 'none';
+        userBtn.style.background = 'var(--color-bg-secondary)';
+        userBtn.style.color = 'var(--color-text)';
+        userBtn.style.border = '1px solid var(--color-border)';
+    } else {
+        userBtn.style.background = 'var(--color-primary)';
+        userBtn.style.color = 'white';
+        userBtn.style.border = 'none';
+        petBtn.style.background = 'var(--color-bg-secondary)';
+        petBtn.style.color = 'var(--color-text)';
+        petBtn.style.border = '1px solid var(--color-border)';
+    }
+}
+
+// Initialize chart on page load
+document.addEventListener('DOMContentLoaded', function() {
+    createChart('pet');
+});
+</script>

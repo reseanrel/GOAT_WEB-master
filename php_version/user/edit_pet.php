@@ -33,33 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $gender = sanitizeInput($_POST['gender']);
     $availableForAdoption = isset($_POST['for_adoption']) ? 1 : 0;
 
-    $photoPath = $pet['photo']; // Keep existing photo by default
-
-    // Handle file upload (only if a new file is uploaded)
-    if (isset($_FILES['pet_photo']) && $_FILES['pet_photo']['error'] == UPLOAD_ERR_OK) {
-        $uploadDir = '../uploads/';
-        $fileName = basename($_FILES['pet_photo']['name']);
-        $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-        $allowedExts = ['jpg', 'jpeg', 'png', 'gif'];
-
-        if (in_array($fileExt, $allowedExts)) {
-            $newFileName = uniqid('pet_') . '.' . $fileExt;
-            $uploadPath = $uploadDir . $newFileName;
-
-            if (move_uploaded_file($_FILES['pet_photo']['tmp_name'], $uploadPath)) {
-                // Delete old photo if it exists
-                if ($pet['photo'] && file_exists($uploadDir . $pet['photo'])) {
-                    unlink($uploadDir . $pet['photo']);
-                }
-                $photoPath = $newFileName;
-            } else {
-                $errors[] = 'Failed to upload photo';
-            }
-        } else {
-            $errors[] = 'Invalid file type. Only JPG, PNG, and GIF are allowed.';
-        }
-    }
-
     $errors = [];
 
     if (empty($name)) {
@@ -75,12 +48,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare("
                 UPDATE pets SET
                     name = ?, category = ?, pet_type = ?, age = ?, color = ?,
-                    gender = ?, available_for_adoption = ?, photo_url = ?
+                    gender = ?, available_for_adoption = ?
                 WHERE id = ? AND owner_id = ?
             ");
             $stmt->execute([
                 $name, $category, $petType, $age, $color, $gender,
-                $availableForAdoption, $photoPath, $petId, $_SESSION['user_id']
+                $availableForAdoption, $petId, $_SESSION['user_id']
             ]);
 
             $_SESSION['success'] = "Pet '$name' details updated successfully!";
@@ -165,25 +138,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         margin: 0;
     }
 
-    .image-upload-section {
-        margin-bottom: 2rem;
-        text-align: center;
-    }
 
-    .image-upload-container {
-        position: relative;
-        width: 120px;
-        height: 120px;
-        margin: 0 auto 1rem;
-        border-radius: 50%;
-        border: 3px dashed var(--border-color);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: var(--transition);
-        overflow: hidden;
-    }
+
+
 
     .image-upload-container:hover {
         border-color: var(--primary-color);
@@ -224,13 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         margin-top: 0.5rem;
     }
 
-    #pet_photo {
-        position: absolute;
-        opacity: 0;
-        width: 100%;
-        height: 100%;
-        cursor: pointer;
-    }
+
 
     .form-grid {
         display: grid;
@@ -433,22 +384,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p>Update information for <?php echo htmlspecialchars($pet['name']); ?></p>
         </div>
 
-        <form method="POST" enctype="multipart/form-data">
-            <!-- Image Upload Section -->
-            <div class="image-upload-section">
-                <div class="image-upload-container <?php echo $pet['photo_url'] ? 'has-image' : ''; ?>" onclick="document.getElementById('pet_photo').click()">
-
-                        <img id="imagePreview" class="image-preview show" src="../uploads/<?php echo htmlspecialchars($pet['photo_url']); ?>" alt="Current Pet Photo">
-                    <?php else: ?>
-                        <i class="fas fa-camera upload-icon"></i>
-                    <?php endif; ?>
-                    <input type="file" id="pet_photo" name="pet_photo" accept="image/*" style="display: none;">
-                </div>
-                <p class="upload-text">Click to change photo</p>
-                <?php if ($pet['photo']): ?>
-                    <p class="current-photo-label">Current photo will be replaced if you upload a new one</p>
-                <?php endif; ?>
-            </div>
+        <form method="POST">
 
             <!-- Form Fields -->
             <div class="form-grid">
@@ -531,22 +467,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script>
-    // Image preview functionality
-    document.getElementById('pet_photo').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        const preview = document.getElementById('imagePreview');
-        const container = document.querySelector('.image-upload-container');
 
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                preview.src = e.target.result;
-                preview.classList.add('show');
-                container.classList.add('has-image');
-            };
-            reader.readAsDataURL(file);
-        }
-    });
 
     // Toggle switch functionality
     function toggleAdoption() {
