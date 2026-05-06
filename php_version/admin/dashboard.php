@@ -893,7 +893,23 @@ try {
                                 <i class="fas fa-heart"></i>
                             </div>
                             <div class="action-title">Adoption</div>
-                            <div class="action-description">Manage pet adoption listings</div>
+                            <div class="action-description">Browse available pets for adoption</div>
+                        </a>
+
+                        <a href="manage_adoption_applications.php" class="action-card">
+                            <div class="action-icon">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <div class="action-title">Adoption Applications</div>
+                            <div class="action-description">Review and approve adoption applications</div>
+                        </a>
+
+                        <a href="../adoption_stats.php" class="action-card">
+                            <div class="action-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="action-title">Adoption Statistics</div>
+                            <div class="action-description">View adoption trends and success metrics</div>
                         </a>
 
                         <a href="manage_users.php" class="action-card">

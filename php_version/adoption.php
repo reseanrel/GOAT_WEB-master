@@ -38,283 +38,270 @@ try {
 
 <?php include 'includes/header.php'; ?>
 
-<link rel="stylesheet" href="admin.css">
-
 <style>
     .adoption {
-        max-width: 1400px;
+        max-width: 1200px;
         margin: 0 auto;
+        padding: var(--spacing-lg);
     }
 
     .page-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-        color: white;
-        padding: var(--spacing-3xl) var(--spacing-2xl);
-        border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
-        margin-bottom: var(--spacing-2xl);
         text-align: center;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-    }
-
-    .page-header::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M30,50 Q50,30 70,50 Q50,70 30,50" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="50" r="3" fill="rgba(255,255,255,0.1)"/></svg>');
-        animation: heartFloat 25s ease-in-out infinite;
-    }
-
-    @keyframes heartFloat {
-        0%, 100% { transform: translateY(0px) rotate(0deg); }
-        33% { transform: translateY(-15px) rotate(120deg); }
-        66% { transform: translateY(10px) rotate(240deg); }
+        margin-bottom: var(--spacing-2xl);
+        padding: var(--spacing-2xl) 0;
     }
 
     .page-title {
-        font-size: 42px;
-        font-weight: 800;
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--color-text);
         margin-bottom: var(--spacing-md);
-        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        position: relative;
-        z-index: 2;
     }
 
     .page-subtitle {
-        font-size: 20px;
-        opacity: 0.95;
+        font-size: 16px;
+        color: var(--color-text-secondary);
         margin: 0;
-        font-weight: 300;
-        position: relative;
-        z-index: 2;
+        max-width: 600px;
+        margin: 0 auto;
     }
 
-    .offer-section {
-        background: linear-gradient(135deg, #fef5ff 0%, #fce7f3 100%);
-        border-radius: var(--radius-2xl);
-        padding: var(--spacing-2xl);
-        margin-bottom: var(--spacing-2xl);
-        border: 2px solid #d53f8c;
-        box-shadow: 0 8px 32px rgba(245, 101, 101, 0.15);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .offer-section::before {
-        content: '💝';
-        position: absolute;
-        top: var(--spacing-lg);
-        right: var(--spacing-lg);
-        font-size: 24px;
-        opacity: 0.3;
-    }
-
-    .offer-form {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: var(--spacing-xl);
-        align-items: end;
-        position: relative;
-        z-index: 2;
-    }
-
-    .form-group {
+    .quick-actions {
         display: flex;
-        flex-direction: column;
-        gap: var(--spacing-sm);
+        justify-content: center;
+        gap: var(--spacing-lg);
+        margin-bottom: var(--spacing-2xl);
+        flex-wrap: wrap;
     }
 
-    .form-label {
-        font-weight: 600;
-        color: #97266d;
-        font-size: 16px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .form-select {
-        padding: var(--spacing-md) var(--spacing-lg);
-        border: 2px solid #d53f8c;
+    .action-card {
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
         border-radius: var(--radius-lg);
-        background: white;
-        color: var(--color-text);
-        font-size: 16px;
-        box-shadow: 0 2px 8px rgba(213, 63, 140, 0.1);
+        padding: var(--spacing-xl);
+        text-align: center;
         transition: all 0.3s ease;
-    }
-
-    .form-select:focus {
-        outline: none;
-        border-color: #97266d;
-        box-shadow: 0 0 0 3px rgba(151, 38, 109, 0.1);
-        transform: translateY(-2px);
-    }
-
-    .btn-offer {
-        background: linear-gradient(135deg, #d53f8c 0%, #97266d 100%);
-        color: white;
-        border: none;
-        padding: var(--spacing-md) var(--spacing-xl);
-        border-radius: var(--radius-lg);
-        font-weight: 600;
-        font-size: 16px;
         cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 16px rgba(213, 63, 140, 0.3);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        position: relative;
-        overflow: hidden;
+        flex: 1;
+        min-width: 200px;
+        max-width: 300px;
     }
 
-    .btn-offer::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-        transition: left 0.5s;
+    .action-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
     }
 
-    .btn-offer:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 32px rgba(213, 63, 140, 0.4);
+    .action-icon {
+        font-size: 24px;
+        color: var(--color-primary);
+        margin-bottom: var(--spacing-md);
     }
 
-    .btn-offer:hover::before {
-        left: 100%;
+    .action-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--color-text);
+        margin-bottom: var(--spacing-sm);
     }
 
-    .btn-offer:active {
-        transform: translateY(-1px);
+    .action-description {
+        font-size: 14px;
+        color: var(--color-text-secondary);
+        margin: 0;
+    }
+
+    .section-divider {
+        height: 1px;
+        background: var(--color-border);
+        margin: var(--spacing-2xl) 0;
+    }
+
+    .pets-section {
+        margin-top: var(--spacing-2xl);
+    }
+
+    .section-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--color-text);
+        margin-bottom: var(--spacing-lg);
+        text-align: center;
     }
 
     .pets-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 20px;
-        padding: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: var(--spacing-xl);
     }
 
     .pet-card {
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
         overflow: hidden;
-        transition: transform 0.2s;
+        transition: all 0.3s ease;
     }
 
     .pet-card:hover {
-        transform: translateY(-2px);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
     }
 
     .pet-image {
-        height: 150px;
-        background: #f0f0f0;
+        height: 180px;
+        background: var(--color-bg-secondary);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #666;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .pet-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .pet-image .no-image {
+        color: var(--color-text-muted);
         font-size: 48px;
     }
 
+    .pet-badge {
+        position: absolute;
+        top: var(--spacing-md);
+        right: var(--spacing-md);
+        background: var(--color-success);
+        color: white;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-md);
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
     .pet-content {
-        padding: 15px;
+        padding: var(--spacing-lg);
     }
 
     .pet-name {
-        font-size: 18px;
-        font-weight: bold;
-        color: #333;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--color-text);
+        margin-bottom: var(--spacing-sm);
         text-align: center;
-        margin-bottom: 10px;
     }
 
     .pet-category {
         display: inline-block;
-        background: #007bff;
+        background: var(--color-primary);
         color: white;
-        padding: 3px 8px;
-        border-radius: 4px;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--radius-sm);
         font-size: 12px;
-        font-weight: bold;
+        font-weight: 600;
         text-transform: uppercase;
-        margin-bottom: 10px;
+        margin-bottom: var(--spacing-md);
     }
 
     .pet-details {
-        margin-bottom: 15px;
+        margin-bottom: var(--spacing-lg);
     }
 
     .pet-detail {
-        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-xs) 0;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .pet-detail:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: var(--color-text);
         font-size: 14px;
-        color: #666;
+    }
+
+    .detail-value {
+        color: var(--color-text-secondary);
+        font-size: 14px;
     }
 
     .pet-actions {
         display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
+        gap: var(--spacing-sm);
     }
 
     .btn-pet {
         flex: 1;
-        padding: 8px 12px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 500;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--radius-md);
+        font-size: 14px;
+        font-weight: 600;
         text-decoration: none;
         text-align: center;
         border: none;
         cursor: pointer;
-        transition: background-color 0.2s;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-xs);
     }
 
     .btn-pet.primary {
-        background: #007bff;
+        background: var(--color-primary);
         color: white;
     }
 
     .btn-pet.primary:hover {
-        background: #0056b3;
+        background: var(--color-primary-dark, #2c5282);
+        transform: translateY(-1px);
+    }
+
+    .btn-pet.secondary {
+        background: var(--color-bg-secondary);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+    }
+
+    .btn-pet.secondary:hover {
+        background: var(--color-bg);
+        transform: translateY(-1px);
     }
 
     .empty-state {
         text-align: center;
         padding: var(--spacing-3xl) var(--spacing-2xl);
-        color: #718096;
-        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-        border-radius: var(--radius-2xl);
-        border: 2px dashed #cbd5e0;
-        margin: var(--spacing-2xl) 0;
+        background: var(--color-bg);
+        border: 2px dashed var(--color-border);
+        border-radius: var(--radius-xl);
+        grid-column: 1 / -1;
     }
 
     .empty-icon {
-        font-size: 80px;
-        margin-bottom: var(--spacing-xl);
-        opacity: 0.6;
-        filter: drop-shadow(0 4px 12px rgba(0,0,0,0.1));
+        font-size: 64px;
+        color: var(--color-text-muted);
+        margin-bottom: var(--spacing-lg);
     }
 
     .empty-state h3 {
-        color: #4a5568;
-        font-size: 28px;
-        font-weight: 700;
+        color: var(--color-text);
+        font-size: 24px;
+        font-weight: 600;
         margin-bottom: var(--spacing-md);
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .empty-state p {
-        font-size: 18px;
+        color: var(--color-text-secondary);
+        font-size: 16px;
         margin: 0;
-        opacity: 0.8;
     }
 
     /* Modal */
@@ -324,105 +311,84 @@ try {
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.6);
+        background: rgba(0, 0, 0, 0.5);
         display: none;
         align-items: center;
         justify-content: center;
         z-index: 1000;
-        backdrop-filter: blur(8px);
-        animation: fadeIn 0.3s ease-out;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+        padding: var(--spacing-lg);
     }
 
     .modal-content {
-        background: white;
-        border-radius: var(--radius-2xl);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        border: none;
+        background: var(--color-bg);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--color-border);
         max-width: 500px;
-        width: 90%;
+        width: 100%;
         max-height: 90vh;
         overflow-y: auto;
-        animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        position: relative;
-    }
-
-    @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px) scale(0.95);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
     }
 
     .modal-header {
-        padding: var(--spacing-2xl) var(--spacing-2xl) var(--spacing-lg);
-        border-bottom: 2px solid #f1f5f9;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+        padding: var(--spacing-xl);
+        border-bottom: 1px solid var(--color-border);
+        background: var(--color-primary);
         color: white;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     }
 
     .modal-title {
         margin: 0;
-        font-size: 24px;
-        font-weight: 700;
+        font-size: 20px;
+        font-weight: 600;
         text-align: center;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
     .modal-body {
-        padding: var(--spacing-2xl);
+        padding: var(--spacing-xl);
     }
 
     .modal-body textarea {
         width: 100%;
-        padding: var(--spacing-lg);
-        border: 2px solid #e2e8f0;
-        border-radius: var(--radius-lg);
+        padding: var(--spacing-md);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
         font-size: 16px;
         font-family: inherit;
         resize: vertical;
-        transition: all 0.3s ease;
-        background: #f8fafc;
+        min-height: 100px;
     }
 
     .modal-body textarea:focus {
         outline: none;
-        border-color: #667eea;
-        background: white;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        border-color: var(--color-primary);
     }
 
     .modal-body label {
         display: block;
         margin-bottom: var(--spacing-md);
         font-weight: 600;
-        color: #4a5568;
-        font-size: 16px;
+        color: var(--color-text);
     }
 
     .modal-footer {
-        padding: var(--spacing-xl) var(--spacing-2xl);
-        border-top: 2px solid #f1f5f9;
+        padding: var(--spacing-xl);
+        border-top: 1px solid var(--color-border);
         display: flex;
-        gap: var(--spacing-lg);
+        gap: var(--spacing-md);
         justify-content: flex-end;
-        background: #f8fafc;
-        border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
+        background: var(--color-bg-secondary);
+        border-radius: 0 0 var(--radius-xl) var(--radius-xl);
     }
 
     .btn-cancel {
-        background: var(--color-bg-secondary);
+        background: var(--color-bg);
         color: var(--color-text);
         border: 1px solid var(--color-border);
+        padding: var(--spacing-sm) var(--spacing-lg);
+        border-radius: var(--radius-md);
+        cursor: pointer;
     }
 
     .btn-cancel:hover {
@@ -431,17 +397,31 @@ try {
     }
 
     @media (max-width: 768px) {
+        .adoption {
+            padding: var(--spacing-md);
+        }
+
         .pets-grid {
             grid-template-columns: 1fr;
+            gap: var(--spacing-lg);
         }
 
-        .offer-form {
-            grid-template-columns: 1fr;
-            gap: var(--spacing-md);
+        .quick-actions {
+            flex-direction: column;
+            align-items: center;
         }
 
-        .pet-details {
-            grid-template-columns: 1fr;
+        .action-card {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .pet-actions {
+            flex-direction: column;
+        }
+
+        .btn-pet {
+            width: 100%;
         }
     }
 </style>
@@ -452,73 +432,135 @@ try {
         <p class="page-subtitle">Find loving homes for pets in need</p>
     </div>
 
-    <!-- Offer Pet for Adoption Section -->
-    <?php if (!empty($userPets)): ?>
-    <div class="offer-section">
-        <h3 style="margin-bottom: var(--spacing-lg); color: var(--color-text);">
-            <i class="fas fa-heart" style="color: var(--color-accent); margin-right: var(--spacing-sm);"></i>
-            Offer a Pet for Adoption
-        </h3>
-        <form class="offer-form" id="offerForm">
-            <div class="form-group">
-                <label class="form-label">Select Your Pet</label>
-                <select class="form-select" id="petSelect" required>
-                    <option value="">Choose a pet...</option>
-                    <?php foreach ($userPets as $pet): ?>
-                        <option value="<?php echo $pet['id']; ?>">
-                            <?php echo htmlspecialchars($pet['name']); ?> (<?php echo htmlspecialchars($pet['pet_type'] ?? 'Unknown'); ?>)
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+    <div class="quick-actions">
+        <div class="action-card" onclick="document.getElementById('adoptionInfoModal').style.display='flex'">
+            <div class="action-icon">
+                <i class="fas fa-info-circle"></i>
             </div>
-            <button type="button" class="btn-offer" onclick="offerForAdoption()">
+            <div class="action-title">How It Works</div>
+            <div class="action-description">Learn about our adoption process</div>
+        </div>
+
+        <?php if (!empty($userPets)): ?>
+        <div class="action-card" onclick="document.getElementById('offerModal').style.display='flex'">
+            <div class="action-icon">
                 <i class="fas fa-plus"></i>
-                Offer for Adoption
-            </button>
-        </form>
-    </div>
-    <?php endif; ?>
-
-    <!-- Available Pets Grid -->
-    <div class="pets-grid">
-        <?php if (empty($adoptionPets)): ?>
-            <div class="empty-state" style="grid-column: 1 / -1;">
-                <div class="empty-icon">
-                    <i class="fas fa-heart"></i>
-                </div>
-                <h3>No Pets Available</h3>
-                <p>There are currently no pets available for adoption. Check back later!</p>
             </div>
-        <?php else: ?>
-            <?php foreach ($adoptionPets as $pet): ?>
-                <div class="pet-card">
-                    <div class="pet-image">
-                        <i class="fas fa-paw"></i>
-                    </div>
-
-                    <div class="pet-content">
-                        <div class="pet-category"><?php echo htmlspecialchars($pet['category'] ?? 'PET'); ?></div>
-
-                        <h3 class="pet-name"><?php echo htmlspecialchars($pet['name']); ?> <span style="color: #28a745; font-size: 14px;">(For Adoption)</span></h3>
-
-                        <div class="pet-details">
-                            <div class="pet-detail"><strong>Age:</strong> <?php echo $pet['age'] ? htmlspecialchars($pet['age']) . ' years' : 'Unknown'; ?></div>
-                            <div class="pet-detail"><strong>Gender:</strong> <?php echo htmlspecialchars($pet['gender'] ?? 'Unknown'); ?></div>
-                            <div class="pet-detail"><strong>Type:</strong> <?php echo htmlspecialchars($pet['pet_type'] ?? 'Unknown'); ?></div>
-                            <div class="pet-detail"><strong>Color:</strong> <?php echo htmlspecialchars($pet['color'] ?? 'Unknown'); ?></div>
-                        </div>
-
-                        <div class="pet-actions">
-                            <button class="btn-pet primary">Contact Owner</button>
-                        </div>
-                    </div>
-                </div>
-                    <?php endforeach; ?>
+            <div class="action-title">List Your Pet</div>
+            <div class="action-description">Offer a pet for adoption</div>
+        </div>
         <?php endif; ?>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <div class="pets-section">
+        <h2 class="section-title">Available Pets</h2>
+
+        <div class="pets-grid">
+            <?php if (empty($adoptionPets)): ?>
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h3>No Pets Available</h3>
+                    <p>There are currently no pets available for adoption. Check back later!</p>
+                </div>
+            <?php else: ?>
+                <?php foreach ($adoptionPets as $pet): ?>
+                    <div class="pet-card">
+                        <div class="pet-image">
+                            <?php if (!empty($pet['photo_path']) && file_exists('../uploads/' . $pet['photo_path'])): ?>
+                                <img src="../uploads/<?php echo htmlspecialchars($pet['photo_path']); ?>" alt="<?php echo htmlspecialchars($pet['name']); ?>">
+                            <?php else: ?>
+                                <i class="fas fa-paw no-image"></i>
+                            <?php endif; ?>
+                            <div class="pet-badge">For Adoption</div>
+                        </div>
+
+                        <div class="pet-content">
+                            <div class="pet-category"><?php echo htmlspecialchars($pet['category'] ?? 'PET'); ?></div>
+                            <h3 class="pet-name"><?php echo htmlspecialchars($pet['name']); ?></h3>
+
+                            <div class="pet-details">
+                                <div class="pet-detail">
+                                    <span class="detail-label">Age:</span>
+                                    <span class="detail-value"><?php echo $pet['age'] ? htmlspecialchars($pet['age']) . ' years' : 'Unknown'; ?></span>
+                                </div>
+                                <div class="pet-detail">
+                                    <span class="detail-label">Gender:</span>
+                                    <span class="detail-value"><?php echo htmlspecialchars($pet['gender'] ?? 'Unknown'); ?></span>
+                                </div>
+                                <div class="pet-detail">
+                                    <span class="detail-label">Type:</span>
+                                    <span class="detail-value"><?php echo htmlspecialchars($pet['pet_type'] ?? 'Unknown'); ?></span>
+                                </div>
+                                <div class="pet-detail">
+                                    <span class="detail-label">Color:</span>
+                                    <span class="detail-value"><?php echo htmlspecialchars($pet['color'] ?? 'Unknown'); ?></span>
+                                </div>
+                            </div>
+
+                            <div class="pet-actions">
+                                <a href="user/adoption_application.php?pet_id=<?php echo $pet['id']; ?>" class="btn-pet primary">
+                                    <i class="fas fa-heart"></i>
+                                    Apply to Adopt
+                                </a>
+                                <button class="btn-pet secondary" onclick="contactOwner('<?php echo htmlspecialchars($pet['owner_email']); ?>', '<?php echo htmlspecialchars($pet['name']); ?>')">
+                                    <i class="fas fa-envelope"></i>
+                                    Contact Owner
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 
-<!-- Offer Modal -->
+<!-- Information Modal -->
+<div class="modal-overlay" id="adoptionInfoModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">How Adoption Works</h3>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom: var(--spacing-lg);">
+                <h4 style="color: var(--color-text); margin-bottom: var(--spacing-md);">For Potential Adopters:</h4>
+                <ul style="color: var(--color-text-secondary); line-height: 1.6;">
+                    <li>Browse available pets and submit formal adoption applications</li>
+                    <li>Provide detailed information about yourself and your living situation</li>
+                    <li>Pet owners and administrators review all applications</li>
+                    <li>You'll be contacted if selected for the next steps</li>
+                </ul>
+            </div>
+            <div style="margin-bottom: var(--spacing-lg);">
+                <h4 style="color: var(--color-text); margin-bottom: var(--spacing-md);">For Pet Owners:</h4>
+                <ul style="color: var(--color-text-secondary); line-height: 1.6;">
+                    <li>List your pet for adoption through your dashboard</li>
+                    <li>Review applications from potential adopters</li>
+                    <li>Administrators oversee the final adoption process</li>
+                    <li>Ensure your pet goes to the best possible home</li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="color: var(--color-text); margin-bottom: var(--spacing-md);">Why Choose Our Process:</h4>
+                <ul style="color: var(--color-text-secondary); line-height: 1.6;">
+                    <li>Thorough background checks and home visits</li>
+                    <li>Vetted adopters committed to pet welfare</li>
+                    <li>Administrative oversight for quality assurance</li>
+                    <li>Lifelong support for successful adoptions</li>
+                </ul>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-cancel" onclick="closeInfoModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Offer Pet Modal -->
 <div class="modal-overlay" id="offerModal">
     <div class="modal-content">
         <div class="modal-header">
@@ -527,37 +569,41 @@ try {
         <form id="adoptionForm">
             <div class="modal-body">
                 <input type="hidden" id="modalPetId" name="pet_id">
-                <div class="form-group">
-                    <label class="form-label">Please provide information about why you're offering this pet for adoption</label>
-                    <textarea class="form-select" name="comment" rows="4" required
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <label style="display: block; margin-bottom: var(--spacing-md); font-weight: 600; color: var(--color-text);">
+                        Select Your Pet
+                    </label>
+                    <select id="petSelect" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-border); border-radius: var(--radius-md);" required>
+                        <option value="">Choose a pet...</option>
+                        <?php foreach ($userPets as $pet): ?>
+                            <option value="<?php echo $pet['id']; ?>">
+                                <?php echo htmlspecialchars($pet['name']); ?> (<?php echo htmlspecialchars($pet['pet_type'] ?? 'Unknown'); ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: var(--spacing-md); font-weight: 600; color: var(--color-text);">
+                        Adoption Details
+                    </label>
+                    <textarea name="comment" rows="4" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: inherit;" required
                               placeholder="Describe the pet's personality, any special needs, reason for adoption, etc."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="closeOfferModal()">Cancel</button>
-                <button type="submit" class="btn-offer">Offer for Adoption</button>
+                <button type="submit" style="background: var(--color-primary); color: white; border: none; padding: var(--spacing-sm) var(--spacing-lg); border-radius: var(--radius-md); cursor: pointer;">Offer for Adoption</button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
+function closeInfoModal() {
+    document.getElementById('adoptionInfoModal').style.display = 'none';
+}
+
 function offerForAdoption() {
-    const petSelect = document.getElementById('petSelect');
-    const selectedPetId = petSelect.value;
-
-    if (!selectedPetId) {
-        alert('Please select a pet to offer for adoption.');
-        return;
-    }
-
-    // Find pet name
-    const selectedOption = petSelect.options[petSelect.selectedIndex];
-    const petName = selectedOption.text.split(' (')[0];
-
-    document.getElementById('modalPetId').value = selectedPetId;
-    document.querySelector('#offerModal .modal-title').textContent = `Offer ${petName} for Adoption`;
-
     document.getElementById('offerModal').style.display = 'flex';
     document.body.style.overflow = 'hidden';
 }
@@ -568,17 +614,27 @@ function closeOfferModal() {
     document.getElementById('adoptionForm').reset();
 }
 
+function contactOwner(email, petName) {
+    const subject = encodeURIComponent(`Adoption Inquiry: ${petName}`);
+    const body = encodeURIComponent(`Hello,\n\nI'm interested in adopting ${petName}. Please contact me to discuss the adoption process.\n\nBest regards,`);
+    window.open(`mailto:${email}?subject=${subject}&body=${body}`);
+}
+
 document.getElementById('adoptionForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
+    const petSelect = document.getElementById('petSelect');
+    if (!petSelect.value) {
+        alert('Please select a pet to offer for adoption.');
+        return;
+    }
+
     const formData = new FormData(this);
 
-    // For now, we'll just add a comment. In a real implementation, you'd want to add API endpoints
-    // to handle adoption offers properly. For this demo, we'll simulate it.
     fetch('user/offer_adoption.php', {
         method: 'POST',
         body: JSON.stringify({
-            pet_id: formData.get('pet_id'),
+            pet_id: petSelect.value,
             comment: formData.get('comment')
         }),
         headers: {
@@ -588,8 +644,6 @@ document.getElementById('adoptionForm').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // In a real implementation, you'd want to set available_for_adoption = 1
-            // For now, we'll just show success
             alert('Pet offered for adoption successfully! (Note: Admin approval required)');
             closeOfferModal();
             location.reload();
@@ -603,23 +657,28 @@ document.getElementById('adoptionForm').addEventListener('submit', function(e) {
     });
 });
 
-function contactForAdoption(email, petName) {
-    const subject = encodeURIComponent(`Adoption Inquiry: ${petName}`);
-    const body = encodeURIComponent(`Hello,\n\nI'm interested in adopting ${petName}. Please contact me to discuss the adoption process.\n\nBest regards,`);
-    window.open(`mailto:${email}?subject=${subject}&body=${body}`);
-}
+// Close modals when clicking outside
+document.getElementById('adoptionInfoModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeInfoModal();
+    }
+});
 
-// Close modal when clicking outside
 document.getElementById('offerModal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeOfferModal();
     }
 });
 
-// Close modal on escape key
+// Close modals on escape key
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && document.getElementById('offerModal').style.display === 'flex') {
-        closeOfferModal();
+    if (e.key === 'Escape') {
+        if (document.getElementById('adoptionInfoModal').style.display === 'flex') {
+            closeInfoModal();
+        }
+        if (document.getElementById('offerModal').style.display === 'flex') {
+            closeOfferModal();
+        }
     }
 });
 </script>
