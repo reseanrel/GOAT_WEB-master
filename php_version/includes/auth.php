@@ -71,7 +71,7 @@ function getUserPets($userId) {
     $conn = $db->getConnection();
 
     $stmt = $conn->prepare("
-        SELECT id, name, category, pet_type, age, color, gender, photo_url,
+        SELECT id, name, category, pet_type, age, color, gender, photo_url AS photo_path,
                available_for_adoption, lost, deceased, status
         FROM pets
         WHERE owner_id = ? AND archived = 0 AND status = 'approved'

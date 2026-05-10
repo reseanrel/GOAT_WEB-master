@@ -43,6 +43,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Pet category is required';
     }
 
+    // Handle optional photo upload
+    $uploadedPhotoPath = null;
+    if (isset($_FILES['pet_photo']) && is_array($_FILES['pet_photo'])) {
+        if (isset($_FILES['pet_photo']['error']) && $_FILES['pet_photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+            if ($_FILES['pet_photo']['error'] !== UPLOAD_ERR_OK) {
+                $errors[] = 'Photo upload failed. Please try again.';
+            } else {
+                $tmpPath = $_FILES['pet_photo']['tmp_name'];
+                $originalName = (string)($_FILES['pet_photo']['name'] ?? '');
+                $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+
+                $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+                if (!in_array($extension, $allowedExtensions, true)) {
+                    $errors[] = 'Unsupported photo type. Allowed: jpg, jpeg, png, webp, gif.';
+                }
+
+                $maxSizeBytes = 16 * 1024 * 1024; // 16MB (matches php limits in .htaccess.bak)
+                $sizeBytes = (int)($_FILES['pet_photo']['size'] ?? 0);
+                if ($sizeBytes <= 0) {
+                    $errors[] = 'Invalid photo file.';
+                } elseif ($sizeBytes > $maxSizeBytes) {
+                    $errors[] = 'Photo is too large (max 16MB).';
+                }
+
+                if (empty($errors)) {
+                    $uploadsDir = dirname(__DIR__) . '/uploads'; // php_version/uploads
+                    if (!is_dir($uploadsDir)) {
+                        if (!mkdir($uploadsDir, 0755, true) && !is_dir($uploadsDir)) {
+                            $errors[] = 'Server error: uploads directory unavailable.';
+                        }
+                    }
+
+                    if (empty($errors) && is_dir($uploadsDir) && is_uploaded_file($tmpPath)) {
+                        $newFileName = 'pet_' . $petId . '_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
+                        $destination = $uploadsDir . DIRECTORY_SEPARATOR . $newFileName;
+
+                        if (move_uploaded_file($tmpPath, $destination)) {
+                            // store relative path for <img src="../uploads/...">
+                            $uploadedPhotoPath = $newFileName;
+                        } else {
+                            $errors[] = 'Server error: could not save the uploaded photo.';
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     if (empty($errors)) {
         try {
             $stmt = $conn->prepare("
@@ -56,7 +104,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $availableForAdoption, $petId, $_SESSION['user_id']
             ]);
 
-            $_SESSION['success'] = "Pet '$name' details updated successfully!";
+            if ($uploadedPhotoPath) {
+                // Save main thumbnail URL
+                $stmt = $conn->prepare("UPDATE pets SET photo_url = ? WHERE id = ? AND owner_id = ?");
+                $stmt->execute([$uploadedPhotoPath, $petId, $_SESSION['user_id']]);
+
+                // Also add to pet_photos gallery (table might not exist yet)
+                $stmt = $conn->prepare("
+                    SELECT COUNT(*) 
+                    FROM information_schema.tables 
+                    WHERE table_schema = DATABASE() AND table_name = 'pet_photos'
+                ");
+                $stmt->execute();
+                $tableExists = (int)$stmt->fetchColumn() > 0;
+
+                if ($tableExists) {
+                    $stmt = $conn->prepare("INSERT INTO pet_photos (pet_id, photo_url) VALUES (?, ?)");
+                    $stmt->execute([$petId, $uploadedPhotoPath]);
+                }
+            }
+
+            $_SESSION['success'] = $uploadedPhotoPath
+                ? "Pet '$name' updated successfully (photo added)!"
+                : "Pet '$name' details updated successfully!";
+
             header('Location: pet_details.php?id=' . $petId);
             exit();
 
@@ -384,7 +455,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p>Update information for <?php echo htmlspecialchars($pet['name']); ?></p>
         </div>
 
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
 
             <!-- Form Fields -->
             <div class="form-grid">
@@ -440,6 +511,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <option value="Male" <?php echo ($pet['gender'] == 'Male') ? 'selected' : ''; ?>>♂️ Male</option>
                         <option value="Female" <?php echo ($pet['gender'] == 'Female') ? 'selected' : ''; ?>>♀️ Female</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- Photo Upload -->
+            <div style="margin-bottom: 2rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" for="pet_photo">Pet Photo (upload new / add to gallery)</label>
+
+                    <div style="display: grid; grid-template-columns: 180px 1fr; gap: 1.5rem; align-items: start;">
+                        <div style="width: 180px; height: 180px; border-radius: 12px; border: 2px solid var(--border-color); overflow: hidden; background: var(--card-bg); display: flex; align-items: center; justify-content: center;">
+                            <?php
+                            $photoOk = !empty($pet['photo_url']) && file_exists(dirname(__DIR__) . '/uploads/' . $pet['photo_url']);
+                            if ($photoOk) {
+                                echo '<img id="currentPhotoPreview" src="../uploads/' . htmlspecialchars($pet['photo_url'], ENT_QUOTES, 'UTF-8') . '" alt="Current pet photo" style="width: 100%; height: 100%; object-fit: cover;" />';
+                            } else {
+                                echo '<i class="fas fa-paw" style="font-size: 54px; color: var(--text-secondary);"></i>';
+                            }
+                            ?>
+                        </div>
+
+                        <div>
+                            <input type="file" id="pet_photo" name="pet_photo" accept="image/*" class="form-input" style="padding: 0.65rem 0.75rem;">
+                            <div class="current-photo-label">
+                                Left side shows current thumbnail. Uploading updates the thumbnail and adds the image to your pet photos.
+                            </div>
+
+                            <div style="margin-top: 0.75rem;">
+                                <img id="newPhotoPreview" src="" alt="New photo preview" style="display:none; width:100%; max-width: 360px; border-radius: 12px; border: 2px dashed var(--border-color); object-fit: cover;">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

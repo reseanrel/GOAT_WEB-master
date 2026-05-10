@@ -32,7 +32,11 @@ def main():
 
     try:
         # Connect to the database
-        conn = psycopg2.connect(database_url + "?sslmode=require")
+        # database_url may already contain sslmode (and psycopg2 rejects duplicate ?sslmode=...).
+        dsn = database_url
+        if "sslmode=" not in dsn:
+            dsn = f"{dsn}?sslmode=require"
+        conn = psycopg2.connect(dsn)
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         # Test 1: Check that no pets would cause broken image URLs
