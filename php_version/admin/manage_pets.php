@@ -23,6 +23,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt = $conn->prepare("UPDATE pets SET archived = 1, archived_at = NOW() WHERE id = ?");
         $stmt->execute([$petId]);
         $_SESSION['success'] = 'Pet archived successfully!';
+    } elseif ($_POST['action'] === 'unarchive') {
+        $stmt = $conn->prepare("UPDATE pets SET archived = 0, archived_at = NULL WHERE id = ?");
+        $stmt->execute([$petId]);
+        $_SESSION['success'] = 'Pet unarchived successfully!';
     }
 
     header('Location: manage_pets.php');

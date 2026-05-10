@@ -9,7 +9,7 @@ $conn = $db->getConnection();
 // Get lost pets
 try {
     $stmt = $conn->prepare("
-        SELECT p.*, u.full_name as owner_name, u.email as owner_email,
+        SELECT p.*, p.photo_url AS photo_path, u.full_name as owner_name, u.email as owner_email,
                u.contact_number as owner_contact
         FROM pets p
         JOIN users u ON p.owner_id = u.id

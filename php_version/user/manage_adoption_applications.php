@@ -13,7 +13,7 @@ $conn = $db->getConnection();
 
 // Get all adoption applications for user's pets
 $stmt = $conn->prepare("
-    SELECT aa.*, p.name as pet_name, p.pet_type, p.age as pet_age, p.photo_path
+    SELECT aa.*, p.name as pet_name, p.pet_type, p.age as pet_age, p.photo_url AS photo_path
     FROM adoption_applications aa
     JOIN pets p ON aa.pet_id = p.id
     WHERE aa.pet_owner_id = ?
@@ -28,7 +28,8 @@ $applicationsByStatus = [
     'under_review' => [],
     'approved' => [],
     'rejected' => [],
-    'withdrawn' => []
+    'withdrawn' => [],
+    'completed' => []
 ];
 
 foreach ($applications as $app) {
@@ -98,6 +99,7 @@ foreach ($applications as $app) {
     .status-tab.approved { border-top-color: var(--color-success); }
     .status-tab.rejected { border-top-color: var(--color-error, #e53e3e); }
     .status-tab.withdrawn { border-top-color: var(--color-text-muted); }
+    .status-tab.completed { border-top-color: var(--color-primary); }
 
     .status-badge {
         display: inline-block;
@@ -114,6 +116,7 @@ foreach ($applications as $app) {
     .status-badge.approved { background: var(--color-success); color: white; }
     .status-badge.rejected { background: var(--color-error, #e53e3e); color: white; }
     .status-badge.withdrawn { background: var(--color-text-muted); color: white; }
+    .status-badge.completed { background: var(--color-primary); color: white; }
 
     .application-card {
         background: var(--color-bg);
@@ -307,6 +310,19 @@ foreach ($applications as $app) {
         transform: translateY(-1px);
     }
 
+    .btn-undo {
+        background: var(--color-bg-secondary);
+        border: 2px solid var(--color-border);
+        color: var(--color-text);
+    }
+
+    .btn-undo:hover {
+        background: var(--color-text);
+        border-color: var(--color-text);
+        color: var(--color-bg);
+        transform: translateY(-1px);
+    }
+
     .empty-state {
         text-align: center;
         padding: var(--spacing-3xl);
@@ -380,6 +396,7 @@ foreach ($applications as $app) {
         <div class="status-tab approved" data-status="approved">Approved (<?php echo count($applicationsByStatus['approved']); ?>)</div>
         <div class="status-tab rejected" data-status="rejected">Rejected (<?php echo count($applicationsByStatus['rejected']); ?>)</div>
         <div class="status-tab withdrawn" data-status="withdrawn">Withdrawn (<?php echo count($applicationsByStatus['withdrawn']); ?>)</div>
+        <div class="status-tab completed" data-status="completed">Completed (<?php echo count($applicationsByStatus['completed']); ?>)</div>
     </div>
 
     <div id="applicationsContainer">
@@ -504,6 +521,11 @@ foreach ($applications as $app) {
                                 <i class="fas fa-heart"></i>
                                 Mark as Adopted
                             </button>
+                        <?php elseif ($app['status'] === 'completed'): ?>
+                            <button class="btn-action btn-undo" onclick="undoAdoption(<?php echo $app['id']; ?>, <?php echo $app['pet_id']; ?>)">
+                                <i class="fas fa-undo"></i>
+                                Undo Adoption
+                            </button>
                         <?php endif; ?>
 
                         <button class="btn-action btn-contact" onclick="contactApplicant('<?php echo htmlspecialchars($app['applicant_email']); ?>', '<?php echo htmlspecialchars($app['pet_name']); ?>')">
@@ -567,6 +589,35 @@ function markAsAdopted(applicationId, petId, adopterId) {
             application_id: applicationId,
             pet_id: petId,
             adopter_id: adopterId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    });
+}
+
+function undoAdoption(applicationId, petId) {
+    if (!confirm('Undo this adoption? This will make the pet available for adoption again.')) {
+        return;
+    }
+
+    fetch('undo_adoption.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            application_id: applicationId,
+            pet_id: petId
         })
     })
     .then(response => response.json())

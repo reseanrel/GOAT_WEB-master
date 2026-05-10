@@ -9,7 +9,7 @@ $conn = $db->getConnection();
 // Get pets available for adoption
 try {
     $stmt = $conn->prepare("
-        SELECT p.*, u.full_name as owner_name, u.email as owner_email,
+        SELECT p.*, p.photo_url AS photo_path, u.full_name as owner_name, u.email as owner_email,
                u.contact_number as owner_contact
         FROM pets p
         JOIN users u ON p.owner_id = u.id
@@ -470,8 +470,12 @@ try {
                 <?php foreach ($adoptionPets as $pet): ?>
                     <div class="pet-card">
                         <div class="pet-image">
-                            <?php if (!empty($pet['photo_path']) && file_exists('../uploads/' . $pet['photo_path'])): ?>
-                                <img src="../uploads/<?php echo htmlspecialchars($pet['photo_path']); ?>" alt="<?php echo htmlspecialchars($pet['name']); ?>">
+                            <?php
+                            $photo = $pet['photo_path'] ?? ($pet['photo_url'] ?? '');
+                            $photo = is_string($photo) ? $photo : '';
+                            ?>
+                            <?php if (!empty($photo) && file_exists('../uploads/' . $photo)): ?>
+                                <img src="../uploads/<?php echo htmlspecialchars($photo); ?>" alt="<?php echo htmlspecialchars($pet['name']); ?>">
                             <?php else: ?>
                                 <i class="fas fa-paw no-image"></i>
                             <?php endif; ?>

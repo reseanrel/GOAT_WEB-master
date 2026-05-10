@@ -460,11 +460,11 @@
                 <?php if ($_SESSION['is_admin']): ?>
                     <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' && strpos($_SERVER['REQUEST_URI'], '/admin/') !== false ? 'active' : ''; ?>" href="/admin/dashboard.php"><i class="fas fa-tachometer-alt"></i>Dashboard</a></li>
                     <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'manage_pets.php' ? 'active' : ''; ?>" href="/admin/manage_pets.php"><i class="fas fa-paw"></i>Manage Pets</a></li>
+                    <!-- Manage Users link removed from sidebar (admin dashboard only) -->
                     <li><a class="sidebar-link" href="/lost_pets.php"><i class="fas fa-search"></i>Lost Pets</a></li>
                     <li><a class="sidebar-link" href="/adoption.php"><i class="fas fa-heart"></i>Adoption</a></li>
                 <?php else: ?>
                     <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' && strpos($_SERVER['REQUEST_URI'], '/user/') !== false ? 'active' : ''; ?>" href="/user/dashboard.php"><i class="fas fa-home"></i>Dashboard</a></li>
-                    <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'register_pet.php' ? 'active' : ''; ?>" href="/user/register_pet.php"><i class="fas fa-plus-circle"></i>Register Pet</a></li>
                     <li><a class="sidebar-link" href="/lost_pets.php"><i class="fas fa-search"></i>Lost Pets</a></li>
                     <li><a class="sidebar-link" href="/adoption.php"><i class="fas fa-heart"></i>Adoption</a></li>
                 <?php endif; ?>

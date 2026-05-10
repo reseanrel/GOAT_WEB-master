@@ -48,7 +48,7 @@ try {
 $recentAdoptions = [];
 try {
     $stmt = $conn->prepare("
-        SELECT p.name as pet_name, p.pet_type, p.photo_path, p.adoption_date,
+        SELECT p.name as pet_name, p.pet_type, p.photo_url AS photo_path, p.adoption_date,
                u.full_name as adopter_name, po.full_name as previous_owner_name
         FROM pets p
         JOIN users u ON p.adopted_by = u.id

@@ -134,7 +134,7 @@ $stats = [
     <div class="stats-cards">
         <div class="stat-card">
             <span class="stat-value"><?php echo $stats['total']; ?></span>
-            <div class="stat-label">Active Users</div>
+            <div class="stat-label">Total Users</div>
         </div>
         <div class="stat-card">
             <span class="stat-value"><?php echo $stats['admins']; ?></span>
@@ -214,6 +214,11 @@ $stats = [
                             </td>
                             <td>
                                 <div class="user-actions">
+                                    <a href="user_details.php?id=<?php echo (int)$user['id']; ?>" class="btn-action btn-view">
+                                        <i class="fas fa-eye"></i>
+                                        View
+                                    </a>
+
                                     <form method="POST" style="display: inline;">
                                         <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
                                         <?php if ($user['archived']): ?>
@@ -221,19 +226,11 @@ $stats = [
                                             <button type="submit" class="btn-action btn-unarchive" onclick="return confirm('Unarchive this user?')">Unarchive</button>
                                         <?php else: ?>
                                             <input type="hidden" name="action" value="archive">
-                                            <button type="submit" class="btn-action btn-archive" onclick="return confirm('Archive this user?')">Archive</button>
+                                            <button type="submit" class="btn-action btn-archive" onclick="return confirm('Archive this user?')">Delete</button>
                                         <?php endif; ?>
                                     </form>
 
-                                    <?php if (!$user['archived'] && $user['id'] != $_SESSION['user_id']): ?>
-                                        <form method="POST" style="display: inline;">
-                                            <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
-                                            <input type="hidden" name="action" value="toggle_admin">
-                                            <button type="submit" class="btn-action btn-admin" onclick="return confirm('<?php echo $user['is_admin'] ? 'Remove' : 'Grant'; ?> admin privileges?')">
-                                                <?php echo $user['is_admin'] ? 'Remove Admin' : 'Make Admin'; ?>
-                                            </button>
-                                        </form>
-                                    <?php endif; ?>
+                                    <?php /* Admin privilege toggle removed per requirements */ ?>
                                 </div>
                             </td>
                         </tr>

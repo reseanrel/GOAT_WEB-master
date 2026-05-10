@@ -8,7 +8,7 @@ $conn = $db->getConnection();
 
 // Get all adoption applications that need admin review
 $stmt = $conn->prepare("
-    SELECT aa.*, p.name as pet_name, p.pet_type, p.age as pet_age, p.photo_path,
+    SELECT aa.*, p.name as pet_name, p.pet_type, p.age as pet_age, p.photo_url AS photo_path,
            po.full_name as pet_owner_name, ap.full_name as applicant_name
     FROM adoption_applications aa
     JOIN pets p ON aa.pet_id = p.id

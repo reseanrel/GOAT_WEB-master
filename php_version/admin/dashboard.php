@@ -771,6 +771,25 @@ try {
         </div>
     </div>
 
+    <div style="margin-bottom: var(--spacing-2xl);">
+        <div class="quick-actions">
+            <a href="manage_users.php" class="action-card">
+                <div class="action-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="action-title">Manage Users</div>
+                <p class="action-description">View, archive, and manage user roles</p>
+            </a>
+            <a href="manage_adoption_applications.php" class="action-card">
+                <div class="action-icon">
+                    <i class="fas fa-hand-holding-heart"></i>
+                </div>
+                <div class="action-title">Adoption Applications</div>
+                <p class="action-description">Review and finalize adoptions</p>
+            </a>
+        </div>
+    </div>
+
     <!-- Analytics Section -->
     <div class="analytics-section">
         <div class="analytics-grid">
