@@ -34,14 +34,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $stmt = $conn->prepare("
                 INSERT INTO pets (name, category, pet_type, age, color, gender, owner_id, available_for_adoption, status, registered_on)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
             ");
-            $stmt->execute([$name, $category, $petType, $age, $color, $gender, $_SESSION['user_id'], $availableForAdoption]);
+            $stmt->execute([
+                $name,
+                $category,
+                $petType,
+                $age,
+                $color,
+                $gender,
+                $_SESSION['user_id'],
+                $availableForAdoption
+            ]);
 
             $_SESSION['success'] = "Pet '$name' registered successfully and is pending admin approval!";
             header('Location: dashboard.php');
             exit();
-
         } catch (Exception $e) {
             $errors[] = 'Database error: ' . $e->getMessage();
         }
@@ -56,85 +64,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php include '../includes/header.php'; ?>
 
 <style>
+    /* Modern “Register Pet” layout (uses theme vars from header.php) */
+    .register-page {
+        max-width: 780px;
+        margin: 0 auto;
+        padding: 16px 0 32px;
+    }
+
+    .page-card {
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid var(--color-border, #e8eaed);
+        border-radius: var(--radius-xl, 16px);
+        box-shadow: var(--shadow-md, 0 1px 3px rgba(0,0,0,0.1));
+        overflow: hidden;
+    }
+
+    .page-card__header {
+        padding: 20px 22px;
+        border-bottom: 1px solid var(--color-border, #e8eaed);
+        background: linear-gradient(135deg, rgba(26, 115, 232, 0.1) 0%, rgba(138, 180, 248, 0.08) 100%);
+    }
+
+    .page-card__header h1 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--color-text, #202124);
+    }
+
+    .page-card__header p {
+        margin: 6px 0 0 0;
+        color: var(--color-text-secondary, #5f6368);
+        font-size: 14px;
+    }
+
+    .page-card__body {
+        padding: 18px 22px 22px;
+    }
+
     .form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .form-group {
-        margin-bottom: 1rem;
-    }
-
-    .form-label {
-        display: block;
-        font-size: 14px;
-        font-weight: 600;
-        color: #374151;
-        margin-bottom: 0.5rem;
-    }
-
-    .form-input, .form-select {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-        font-size: 16px;
-        background: white;
-    }
-
-    .form-select {
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-        background-position: right 0.5rem center;
-        background-repeat: no-repeat;
-        padding-right: 2rem;
-    }
-
-    .toggle-container {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.75rem;
-        border: 1px solid #d1d5db;
-        border-radius: 6px;
-        background: white;
-        cursor: pointer;
-    }
-
-    .toggle-label {
-        font-size: 14px;
-        font-weight: 600;
-        color: #374151;
-    }
-
-    .toggle-switch {
-        width: 36px;
-        height: 20px;
-        background: #d1d5db;
-        border-radius: 20px;
-        position: relative;
-        transition: background-color 0.2s;
-    }
-
-
-
-    .btn-primary {
-        width: 100%;
-        padding: 0.75rem;
-        background: #4f46e5;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        margin-top: 1rem;
-    }
-
-    .required {
-        color: #ef4444;
+        gap: 14px;
+        margin-bottom: 14px;
     }
 
     @media (max-width: 768px) {
@@ -142,94 +114,207 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             grid-template-columns: 1fr;
         }
     }
+
+    .form-field label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-text-secondary, #5f6368);
+    }
+
+    .form-field .req {
+        color: var(--color-error, #ea4335);
+        margin-left: 4px;
+        font-weight: 700;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: var(--radius-md, 8px);
+        border: 1px solid var(--color-border, #e8eaed);
+        background: #fff;
+        outline: none;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        font-size: 14px;
+        color: var(--color-text, #202124);
+    }
+
+    .form-control:focus {
+        border-color: var(--color-primary, #1a73e8);
+        box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.18);
+    }
+
+    .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 0 14px;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        border: 1px solid var(--color-border, #e8eaed);
+        padding: 11px 16px;
+        border-radius: var(--radius-lg, 12px);
+        cursor: pointer;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 14px;
+        transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+        user-select: none;
+    }
+
+    .btn-primary {
+        background: var(--color-primary, #1a73e8);
+        border-color: var(--color-primary, #1a73e8);
+        color: white;
+        box-shadow: 0 8px 22px rgba(26, 115, 232, 0.25);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        background: var(--color-primary-hover, #1557b0);
+        box-shadow: 0 10px 26px rgba(21, 87, 176, 0.30);
+    }
+
+    .btn-link {
+        background: transparent;
+        color: var(--color-primary, #1a73e8);
+        border-color: transparent;
+        font-weight: 700;
+    }
+
+    .btn-link:hover {
+        background: rgba(26, 115, 232, 0.08);
+        border-color: rgba(26, 115, 232, 0.15);
+    }
+
+    .hint {
+        margin-top: 14px;
+        font-size: 13px;
+        color: var(--color-text-muted, #80868b);
+    }
 </style>
 
-<div style="max-width: 600px; margin: 2rem auto; padding: 0 1rem;">
-    <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-        <h1 style="text-align: center; color: #374151; margin-bottom: 0.5rem;">Register New Pet</h1>
-        <p style="text-align: center; color: #6b7280; margin-bottom: 2rem;">Add your pet to the registration system</p>
+<div class="register-page">
+    <div class="page-card">
+        <div class="page-card__header">
+            <h1>Register New Pet</h1>
+            <p>Add your pet to the registration system</p>
+        </div>
 
-        <form method="POST">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="form-label" for="pet_name">Pet Name <span class="required">*</span></label>
-                    <input type="text" class="form-input" id="pet_name" name="pet_name" placeholder="Enter pet name" required>
+        <div class="page-card__body">
+            <form method="POST">
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label for="pet_name">Pet Name <span class="req">*</span></label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="pet_name"
+                            name="pet_name"
+                            placeholder="Enter pet name"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-field">
+                        <label>Category <span class="req">*</span></label>
+                        <select class="form-control" name="pet_category" required>
+                            <option value="">Select Category</option>
+                            <option value="Dog">Dog</option>
+                            <option value="Cat">Cat</option>
+                            <option value="Bird">Bird</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="pet_type">Breed / Type</label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="pet_type"
+                            name="pet_type"
+                            placeholder="e.g., Golden Retriever"
+                        >
+                    </div>
+
+                    <div class="form-field">
+                        <label for="age">Age (years)</label>
+                        <input type="number" class="form-control" id="age" name="age" min="0" max="30">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="color">Color</label>
+                        <input type="text" class="form-control" id="color" name="color" placeholder="e.g., Brown & White">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="gender">Gender</label>
+                        <select class="form-control" id="gender" name="gender">
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Category <span class="required">*</span></label>
-                    <select class="form-select" name="pet_category" required>
-                        <option value="">Select Category</option>
-                        <option value="Dog">Dog</option>
-                        <option value="Cat">Cat</option>
-                        <option value="Bird">Bird</option>
-                        <option value="Other">Other</option>
-                    </select>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="for_adoption" name="for_adoption">
+                    <label for="for_adoption" style="margin: 0; font-size: 14px; font-weight: 600; color: var(--color-text-secondary, #5f6368);">
+                        Available for Adoption
+                    </label>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Breed/Type</label>
-                    <input type="text" class="form-input" name="pet_type" placeholder="e.g., Golden Retriever">
+                <div class="actions">
+                    <a class="btn btn-link" href="dashboard.php">
+                        ← Back to Dashboard
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paw"></i>
+                        Register Pet
+                    </button>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Age (years)</label>
-                    <input type="number" class="form-input" name="age" min="0" max="30">
+                <div class="hint">
+                    Submitting will place your pet in <b>pending</b> status until an admin reviews it.
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label">Color</label>
-                    <input type="text" class="form-input" name="color" placeholder="e.g., Brown & White">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Gender</label>
-                    <select class="form-select" name="gender">
-                        <option value="">Select Gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                    </select>
-                </div>
-
-
-            </div>
-
-            <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 0.5rem;">
-                    <input type="checkbox" name="for_adoption" style="width: 16px; height: 16px;">
-                    Available for Adoption
-                </label>
-            </div>
-
-            <button type="submit" class="btn-primary">Register Pet</button>
-        </form>
-
-        <p style="text-align: center; margin-top: 1rem; color: #6b7280;">
-            <a href="dashboard.php" style="color: #4f46e5; text-decoration: none;">← Back to Dashboard</a>
-        </p>
+            </form>
+        </div>
     </div>
 </div>
 
 <script>
-// Basic form validation
-document.querySelector('form').addEventListener('submit', function(e) {
-    const requiredFields = ['pet_name', 'pet_category'];
-    let isValid = true;
+    // Basic form validation (keep lightweight; UI is handled by native required attributes)
+    document.querySelector('form')?.addEventListener('submit', function (e) {
+        const petName = document.querySelector('[name="pet_name"]');
+        const petCategory = document.querySelector('[name="pet_category"]');
+        let ok = true;
 
-    requiredFields.forEach(fieldName => {
-        const field = document.querySelector(`[name="${fieldName}"]`);
-        if (!field.value.trim()) {
-            field.style.borderColor = '#ef4444';
-            isValid = false;
-        } else {
-            field.style.borderColor = '#d1d5db';
-        }
+        if (petName && !petName.value.trim()) { ok = false; petName.style.borderColor = '#ea4335'; }
+        if (petCategory && !petCategory.value.trim()) { ok = false; petCategory.style.borderColor = '#ea4335'; }
+
+        if (!ok) e.preventDefault();
     });
-
-    if (!isValid) {
-        e.preventDefault();
-    }
-});
 </script>
 
 <?php include '../includes/footer.php'; ?>

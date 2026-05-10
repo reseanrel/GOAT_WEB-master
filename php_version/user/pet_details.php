@@ -413,6 +413,13 @@ $medicalRecords = $stmt->fetchAll();
                     Report Lost
                 </button>
             <?php endif; ?>
+
+            <?php if (!$pet['available_for_adoption']): ?>
+                <button class="btn-action btn-primary" onclick="offerAdoption()">
+                    <i class="fas fa-heart"></i>
+                    Offer for Adoption
+                </button>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -519,6 +526,40 @@ $medicalRecords = $stmt->fetchAll();
 </div>
 
 <script>
+function offerAdoption() {
+    const petId = <?php echo $pet['id']; ?>;
+
+    if (!confirm('Offer this pet for adoption? It will be reviewed by administrators.')) {
+        return;
+    }
+
+    const comment = prompt('Add a short message about the adoption offer (optional):', 'Pet owner is offering this pet for adoption.');
+    if (comment === null) return;
+
+    fetch('offer_adoption.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            pet_id: petId,
+            comment: String(comment).trim()
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    });
+}
+
 function reportLost() {
     if (confirm('Are you sure you want to report this pet as lost?')) {
         fetch('report_lost.php', {

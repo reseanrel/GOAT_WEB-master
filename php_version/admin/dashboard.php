@@ -14,17 +14,17 @@ $petGrowth = 0;
 $pendingPets = 0;
 $lostPets = 0;
 $adoptionPets = 0;
+$totalApprovedPets = 0;
 
 try {
     $stmt = $conn->query("SELECT COUNT(*) as total FROM users WHERE archived = 0");
     $totalUsers = $stmt->fetch()['total'];
 } catch (Exception $e) {
-    // Database not set up yet
     $totalUsers = 0;
 }
 
+// Calculate user growth (last 30 days vs previous 30 days)
 try {
-    // Calculate user growth (last 30 days vs previous 30 days)
     $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE archived = 0 AND created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
     $stmt->execute();
     $currentUsers = $stmt->fetchColumn();
@@ -36,11 +36,20 @@ try {
     if ($previousUsers > 0) {
         $userGrowth = round((($currentUsers - $previousUsers) / $previousUsers) * 100, 1);
     }
+} catch (Exception $e) {
+    $userGrowth = 0;
+}
 
+// Total pets
+try {
     $stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE archived = 0 AND status = 'approved'");
     $totalPets = $stmt->fetch()['total'];
+} catch (Exception $e) {
+    $totalPets = 0;
+}
 
-    // Calculate pet registration growth
+// Calculate pet registration growth
+try {
     $stmt = $conn->prepare("SELECT COUNT(*) FROM pets WHERE archived = 0 AND status = 'approved' AND registered_on >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
     $stmt->execute();
     $currentPets = $stmt->fetchColumn();
@@ -52,17 +61,32 @@ try {
     if ($previousPets > 0) {
         $petGrowth = round((($currentPets - $previousPets) / $previousPets) * 100, 1);
     }
+} catch (Exception $e) {
+    $petGrowth = 0;
+}
 
+// Pending pets
+try {
     $stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE status = 'pending' AND archived = 0");
     $pendingPets = $stmt->fetch()['total'];
+} catch (Exception $e) {
+    $pendingPets = 0;
+}
 
+// Lost pets
+try {
     $stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE lost = 1 AND archived = 0 AND status = 'approved' AND deceased = 0");
     $lostPets = $stmt->fetch()['total'];
+} catch (Exception $e) {
+    $lostPets = 0;
+}
 
+// For adoption pets
+try {
     $stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE available_for_adoption = 1 AND archived = 0 AND status = 'approved' AND deceased = 0");
     $adoptionPets = $stmt->fetch()['total'];
 } catch (Exception $e) {
-    // Database queries failed - use defaults
+    $adoptionPets = 0;
 }
 
 // Initialize empty arrays for analytics
@@ -282,6 +306,7 @@ try {
         display: grid;
         grid-template-columns: 2fr 1fr;
         gap: var(--spacing-2xl);
+        align-items: start;
     }
 
     .main-panel {
@@ -302,7 +327,7 @@ try {
         padding: var(--spacing-xl);
         border-bottom: 1px solid var(--color-border);
         display: flex;
-        justify-content: between;
+        justify-content: space-between;
         align-items: center;
     }
 
@@ -467,6 +492,14 @@ try {
         display: grid;
         grid-template-columns: 2fr 1fr;
         gap: var(--spacing-xl);
+        align-items: start;
+    }
+
+    .chart-container,
+    .category-breakdown,
+    .activities-feed {
+        width: 100%;
+        height: 100%;
     }
 
     .chart-container {
@@ -475,7 +508,7 @@ try {
         padding: var(--spacing-xl);
         box-shadow: var(--shadow-md);
         border: 1px solid var(--color-border);
-        margin-bottom: var(--spacing-xl);
+        margin-bottom: 0;
     }
 
     .chart-header {
@@ -510,13 +543,34 @@ try {
 
     .category-item {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        flex-direction: column;
+        gap: var(--spacing-xs);
         padding: var(--spacing-md);
         margin-bottom: var(--spacing-sm);
         background: var(--color-bg-secondary);
         border-radius: var(--radius-md);
         border: 1px solid var(--color-border);
+    }
+
+    .category-item-row {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--spacing-md);
+    }
+
+    .category-bar {
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+
+    .category-bar-fill {
+        height: 100%;
+        background: var(--color-primary);
+        border-radius: 999px;
     }
 
     .category-name {
@@ -739,7 +793,7 @@ try {
 
             <!-- Category Breakdown & Activities -->
             <div>
-                <div class="category-breakdown" style="margin-bottom: var(--spacing-xl);">
+                <div class="category-breakdown">
                     <div class="panel-header" style="padding: 0 0 var(--spacing-lg) 0; border: none;">
                         <h3 class="panel-title" style="font-size: 18px;">
                             <i class="fas fa-chart-pie"></i>
@@ -754,9 +808,19 @@ try {
                             </div>
                         <?php else: ?>
                             <?php foreach ($categoryData as $category): ?>
+                                <?php
+                                    $categoryCount = (int)$category['count'];
+                                    $percent = $totalApprovedPets > 0 ? round(($categoryCount / $totalApprovedPets) * 100, 1) : 0;
+                                    $barWidth = $totalApprovedPets > 0 ? min(100, round(($categoryCount / $totalApprovedPets) * 100, 1)) : 0;
+                                ?>
                                 <div class="category-item">
-                                    <span class="category-name"><?php echo htmlspecialchars(ucfirst($category['category'])); ?></span>
-                                    <span class="category-count"><?php echo $category['count']; ?></span>
+                                    <div class="category-item-row">
+                                        <span class="category-name"><?php echo htmlspecialchars(ucfirst($category['category'])); ?></span>
+                                        <span class="category-count"><?php echo $categoryCount; ?> (<?php echo $percent; ?>%)</span>
+                                    </div>
+                                    <div class="category-bar" aria-hidden="true">
+                                        <div class="category-bar-fill" style="width: <?php echo $barWidth; ?>%;"></div>
+                                    </div>
                                 </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -862,96 +926,6 @@ try {
             </div>
         </div>
 
-        <div class="sidebar-panel">
-            <div class="panel-card">
-                <div class="panel-header">
-                    <h3 class="panel-title">
-                        <i class="fas fa-bolt"></i>
-                        Quick Actions
-                    </h3>
-                </div>
-                <div class="panel-content">
-                    <div class="quick-actions">
-                        <a href="manage_pets.php" class="action-card">
-                            <div class="action-icon">
-                                <i class="fas fa-paw"></i>
-                            </div>
-                            <div class="action-title">Manage Pets</div>
-                            <div class="action-description">Review and manage all pet registrations</div>
-                        </a>
-
-                        <a href="../lost_pets.php" class="action-card">
-                            <div class="action-icon">
-                                <i class="fas fa-search"></i>
-                            </div>
-                            <div class="action-title">Lost Pets</div>
-                            <div class="action-description">Help reunite lost pets with owners</div>
-                        </a>
-
-                        <a href="../adoption.php" class="action-card">
-                            <div class="action-icon">
-                                <i class="fas fa-heart"></i>
-                            </div>
-                            <div class="action-title">Adoption</div>
-                            <div class="action-description">Browse available pets for adoption</div>
-                        </a>
-
-                        <a href="manage_adoption_applications.php" class="action-card">
-                            <div class="action-icon">
-                                <i class="fas fa-clipboard-check"></i>
-                            </div>
-                            <div class="action-title">Adoption Applications</div>
-                            <div class="action-description">Review and approve adoption applications</div>
-                        </a>
-
-                        <a href="../adoption_stats.php" class="action-card">
-                            <div class="action-icon">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <div class="action-title">Adoption Statistics</div>
-                            <div class="action-description">View adoption trends and success metrics</div>
-                        </a>
-
-                        <a href="manage_users.php" class="action-card">
-                            <div class="action-icon">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div class="action-title">Users</div>
-                            <div class="action-description">Manage user accounts and permissions</div>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel-card" style="margin-top: var(--spacing-xl);">
-                <div class="panel-header">
-                    <h3 class="panel-title">
-                        <i class="fas fa-chart-line"></i>
-                        System Overview
-                    </h3>
-                </div>
-                <div class="panel-content">
-                    <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-md); background: var(--color-bg-secondary); border-radius: var(--radius-md);">
-                            <span style="font-weight: 500; color: var(--color-text);">Active Users</span>
-                            <span style="font-size: 20px; font-weight: 600; color: var(--color-primary);"><?php echo $totalUsers; ?></span>
-                        </div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-md); background: var(--color-bg-secondary); border-radius: var(--radius-md);">
-                            <span style="font-weight: 500; color: var(--color-text);">Total Pets</span>
-                            <span style="font-size: 20px; font-weight: 600; color: var(--color-success);"><?php echo $totalPets; ?></span>
-                        </div>
-
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-md); background: var(--color-bg-secondary); border-radius: var(--radius-md);">
-                            <span style="font-weight: 500; color: var(--color-text);">For Adoption</span>
-                            <span style="font-size: 20px; font-weight: 600; color: var(--color-accent);"><?php echo $adoptionPets; ?></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <?php include '../includes/footer.php'; ?>
 
