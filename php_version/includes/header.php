@@ -434,6 +434,60 @@
     </style>
 </head>
 <body>
+    <?php
+        $lostAttentionCount = 0;
+        $adoptionAttentionCount = 0;
+
+        $userLostCount = 0;
+        $userAdoptionCount = 0;
+
+        if (isset($_SESSION['user_id'])) {
+            require_once __DIR__ . '/../includes/auth.php';
+            $db = Database::getInstance();
+            $conn = $db->getConnection();
+
+            if (($_SESSION['is_admin'] ?? false) == true) {
+                $stmt = $conn->prepare("
+                    SELECT COUNT(*) AS cnt
+                    FROM pets
+                    WHERE archived = 0
+                      AND lost = 1
+                      AND deceased = 0
+                      AND status = 'approved'
+                ");
+                $stmt->execute();
+                $lostAttentionCount = (int)($stmt->fetch()['cnt'] ?? 0);
+
+                $stmt = $conn->prepare("
+                    SELECT COUNT(*) AS cnt
+                    FROM adoption_applications
+                    WHERE status IN ('under_review','approved')
+                ");
+                $stmt->execute();
+                $adoptionAttentionCount = (int)($stmt->fetch()['cnt'] ?? 0);
+            } else {
+                $stmt = $conn->prepare("
+                    SELECT COUNT(*) AS cnt
+                    FROM pets
+                    WHERE archived = 0
+                      AND lost = 1
+                      AND deceased = 0
+                ");
+                $stmt->execute();
+                $userLostCount = (int)($stmt->fetch()['cnt'] ?? 0);
+
+                $stmt = $conn->prepare("
+                    SELECT COUNT(*) AS cnt
+                    FROM adoption_applications
+                    WHERE pet_owner_id = ?
+                      AND status IN ('pending','under_review','approved')
+                ");
+                $stmt->execute([$_SESSION['user_id']]);
+                $userAdoptionCount = (int)($stmt->fetch()['cnt'] ?? 0);
+            }
+        }
+    ?>
+
     <?php if (isset($_SESSION['user_id'])): ?>
         <!-- Sidebar for logged-in users -->
         <aside class="sidebar" id="sidebar">
@@ -479,7 +533,100 @@
                     <i class="fas fa-bars"></i>
                 </button>
                 <h1 class="page-title" id="pageTitle">Dashboard</h1>
-                <div></div> <!-- Spacer for flex layout -->
+
+                <?php if (($_SESSION['is_admin'] ?? false) == true): ?>
+                    <div class="notification-bell-wrap" style="display:flex; align-items:center; gap: var(--spacing-md);">
+                        <div class="notification-dropdown" style="position:relative;">
+                            <button type="button" class="notification-bell notification-bell-button" aria-label="Notifications"
+                                    onclick="toggleNotificationDropdown(this)" style="border: none; background: transparent; padding: 0; cursor: pointer;">
+                                <i class="fas fa-bell" style="font-size:18px;"></i>
+                                <span class="notification-badge" style="
+                                    position:absolute;
+                                    top:-8px;
+                                    right:-10px;
+                                    min-width: 18px;
+                                    height: 18px;
+                                    padding: 0 5px;
+                                    border-radius: 999px;
+                                    background: var(--color-error);
+                                    color: white;
+                                    font-size: 12px;
+                                    font-weight: 700;
+                                    display:flex;
+                                    align-items:center;
+                                    justify-content:center;
+                                    box-shadow: var(--shadow-sm);
+                                ">
+                                    <?php echo (int)$lostAttentionCount + (int)$adoptionAttentionCount; ?>
+                                </span>
+                            </button>
+
+                            <div class="notification-dropdown-panel" style="
+                                position:absolute;
+                                top: calc(100% + 10px);
+                                right: 0;
+                                min-width: 320px;
+                                max-width: 420px;
+                                background: rgba(255,255,255,0.95);
+                                border: 1px solid var(--color-border);
+                                border-radius: var(--radius-xl);
+                                box-shadow: 0 18px 50px rgba(0,0,0,0.12);
+                                padding: 10px;
+                                z-index: 2000;
+                                overflow:hidden;
+                                backdrop-filter: blur(12px);
+                                display:none;
+                            ">
+
+                                <a class="notification-dropdown-item" href="/admin/manage_pets.php?status=pending" style="display:flex; align-items:flex-start; gap: 12px; padding: 12px 12px; border-radius: var(--radius-lg); text-decoration:none; color: var(--color-text); transition: background-color 0.15s ease;">
+                                    <i class="fas fa-exclamation-triangle" style="color: var(--color-error);"></i>
+                                    <div class="notification-dropdown-text" style="display:flex; flex-direction:column; gap: 2px; min-width: 0;">
+                                        <div class="notification-dropdown-title" style="font-weight: 800; color: var(--color-text); font-size: 14px;">Lost pets</div>
+                                        <div class="notification-dropdown-sub" style="font-size: 13px; color: var(--color-text-secondary); font-weight: 600;"><?php echo (int)$lostAttentionCount; ?> need attention</div>
+                                    </div>
+                                </a>
+
+                                <a class="notification-dropdown-item" href="/admin/manage_adoption_applications.php" style="display:flex; align-items:flex-start; gap: 12px; padding: 12px 12px; border-radius: var(--radius-lg); text-decoration:none; color: var(--color-text); transition: background-color 0.15s ease;">
+                                    <i class="fas fa-heart" style="color: var(--color-primary);"></i>
+                                    <div class="notification-dropdown-text" style="display:flex; flex-direction:column; gap: 2px; min-width: 0;">
+                                        <div class="notification-dropdown-title" style="font-weight: 800; color: var(--color-text); font-size: 14px;">Adoption applications</div>
+                                        <div class="notification-dropdown-sub" style="font-size: 13px; color: var(--color-text-secondary); font-weight: 600;"><?php echo (int)$adoptionAttentionCount; ?> pending review</div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <div style="display:flex; align-items:center; gap: var(--spacing-md);">
+                        <?php $totalUserNotifications = (int)$userLostCount + (int)$userAdoptionCount; ?>
+                        <a href="/user/manage_adoption_applications.php" style="position:relative; text-decoration:none; color: var(--color-text); display:flex; align-items:center;">
+                            <i class="fas fa-bell" style="font-size:18px;"></i>
+                            <span style="
+                                position:absolute;
+                                top:-8px;
+                                right:-10px;
+                                min-width: 18px;
+                                height: 18px;
+                                padding: 0 5px;
+                                border-radius: 999px;
+                                background: var(--color-error);
+                                color: white;
+                                font-size: 12px;
+                                font-weight: 700;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                                box-shadow: var(--shadow-sm);
+                            "><?php echo $totalUserNotifications; ?></span>
+                        </a>
+
+                        <a href="/lost_pets.php" style="text-decoration:none; color: var(--color-text-secondary); display:flex; align-items:center; gap:8px;">
+                            <i class="fas fa-exclamation-triangle" style="color: var(--color-error);"></i>
+                            <span style="font-weight:600; font-size:13px;"><?php echo (int)$userLostCount; ?> lost pets</span>
+                        </a>
+                    </div>
+                <?php endif; ?>
+
             </div>
             <div class="page-content fade-in">
     <?php else: ?>
@@ -541,6 +688,19 @@
                 const mainContent = document.getElementById('mainContent');
                 if (sidebar) sidebar.classList.toggle('collapsed');
                 if (mainContent) mainContent.classList.toggle('expanded');
+            }
+
+            function toggleNotificationDropdown(button) {
+                if (!button) return;
+
+                const dropdown = button.closest('.notification-dropdown');
+                if (!dropdown) return;
+
+                const panel = dropdown.querySelector('.notification-dropdown-panel');
+                if (!panel) return;
+
+                const isVisible = panel.style.display === 'block';
+                panel.style.display = isVisible ? 'none' : 'block';
             }
 
             // Close mobile menu when clicking outside
