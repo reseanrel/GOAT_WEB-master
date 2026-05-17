@@ -248,8 +248,8 @@ try {
     .stat-card.users::before { background: linear-gradient(90deg, #4285f4, #8ab4f8); }
     .stat-card.pets::before { background: linear-gradient(90deg, #34a853, #81c784); }
     .stat-card.pending::before { background: linear-gradient(90deg, #fbbc04, #fdd835); }
-    .stat-card.lost::before { background: linear-gradient(90deg, #ea4335, #ef5350); }
-    .stat-card.adoption::before { background: linear-gradient(90deg, #9c27b0, #ba68c8); }
+    .stat-card.lost::before { background: linear-gradient(90deg, #f59e0b, #fb7185); }
+    .stat-card.adoption::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
 
     .stat-content {
         display: flex;
@@ -350,71 +350,177 @@ try {
         padding: var(--spacing-xl);
     }
 
+    /* Pending cards - align with Lost Pets / Adoption (image-first cards) */
     .pending-list {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-md);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: var(--spacing-lg);
+        align-items: stretch;
     }
 
     .pending-item {
+        background: rgba(255,255,255,0.92);
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: var(--radius-xl, 20px);
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
         display: flex;
-        align-items: center;
-        gap: var(--spacing-md);
-        padding: var(--spacing-md);
-        background: var(--color-bg-secondary);
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--color-border);
-        transition: all 0.2s ease;
+        flex-direction: column;
+        min-height: 480px;
     }
 
     .pending-item:hover {
-        background: var(--color-bg-tertiary);
-        border-color: var(--color-border-hover);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+        border-color: rgba(245,158,11,0.30);
     }
 
-    .pending-avatar {
-        width: 48px;
-        height: 48px;
-        background: var(--color-bg);
-        border-radius: 50%;
+    .pending-media {
+        height: 210px;
+        position: relative;
+        background: #fff;
+    }
+
+    .pending-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .pending-media .media-fallback {
+        width: 100%;
+        height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--color-primary);
-        font-weight: 600;
-        font-size: 18px;
-        flex-shrink: 0;
+        background: rgba(17,24,39,0.03);
+        color: rgba(17,24,39,0.45);
+        font-size: 52px;
     }
 
-    .pending-info {
+    .pending-status-badge {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 1000;
+        letter-spacing: 0.3px;
+        color: #fff;
+        background: var(--color-warning);
+        box-shadow: 0 10px 20px rgba(245,158,11,0.18);
+        text-transform: uppercase;
+        border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    .pending-type-pill {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 1000;
+        letter-spacing: 0.2px;
+        color: #0f172a;
+        background: rgba(255,255,255,0.78);
+        border: 1px solid rgba(0,0,0,0.06);
+        backdrop-filter: blur(6px);
+    }
+
+    /* Reuse public card-ish type colors */
+    .pending-type-dog { background: rgba(37,99,235,0.12); border-color: rgba(37,99,235,0.25); color: #1d4ed8; }
+    .pending-type-cat { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.25); color: #0f766e; }
+    .pending-type-other { background: rgba(148,163,184,0.18); border-color: rgba(148,163,184,0.28); color: #334155; }
+
+    .pending-body {
+        padding: var(--spacing-lg);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
         flex: 1;
-        min-width: 0;
     }
 
     .pending-name {
-        font-weight: 600;
-        color: var(--color-text);
-        margin-bottom: var(--spacing-xs);
+        font-size: 18px;
+        font-weight: 1000;
+        color: rgba(17,24,39,0.95);
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .pending-brief {
+        margin: 0;
+        color: rgba(17,24,39,0.62);
+        font-weight: 650;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .pending-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 12px;
+        margin-top: 6px;
+    }
+
+    .pending-meta .meta-item {
+        border: 1px solid rgba(0,0,0,0.05);
+        background: rgba(255,255,255,0.65);
+        border-radius: 14px;
+        padding: 8px 10px;
+    }
+
+    .pending-meta .meta-label {
+        font-size: 11px;
+        font-weight: 1000;
+        color: rgba(17,24,39,0.55);
+        text-transform: uppercase;
+        letter-spacing: .3px;
+        margin-bottom: 4px;
+    }
+
+    .pending-meta .meta-value {
+        font-size: 13px;
+        font-weight: 900;
+        color: rgba(17,24,39,0.9);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
-    .pending-meta {
-        font-size: 14px;
-        color: var(--color-text-secondary);
-        margin-bottom: var(--spacing-xs);
-    }
-
-    .pending-owner {
-        font-size: 13px;
-        color: var(--color-text-muted);
-    }
-
     .pending-actions {
-        display: flex;
-        gap: var(--spacing-xs);
-        flex-shrink: 0;
+        margin-top: auto;
+        padding-top: var(--spacing-md);
+        border-top: 1px solid rgba(0,0,0,0.06);
+        display: grid;
+        gap: 10px;
+    }
+
+    .pending-review-btn {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        border-radius: var(--radius-lg, 18px);
+        padding: 12px 14px;
+        background: #111827;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 1000;
+        border: 1px solid rgba(0,0,0,0.08);
+        cursor: pointer;
+        transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .pending-review-btn:hover {
+        transform: translateY(-2px);
+        background: #0f172a;
+        box-shadow: var(--shadow-md);
     }
 
 
@@ -916,26 +1022,59 @@ try {
                     <?php else: ?>
                         <div class="pending-list">
                             <?php foreach ($recentPending as $pet): ?>
+                                <?php
+                                    $photo = $pet['photo_path'] ?? ($pet['photo_url'] ?? '');
+                                    $photo = is_string($photo) ? $photo : '';
+                                    $photoOk = !empty($photo) && file_exists('../uploads/' . $photo);
+
+                                    $category = (string)($pet['category'] ?? 'PET');
+                                    $typeClass = 'pending-type-other';
+                                    if (strtolower($category) === 'dog') $typeClass = 'pending-type-dog';
+                                    if (strtolower($category) === 'cat') $typeClass = 'pending-type-cat';
+
+                                    $registeredOn = !empty($pet['registered_on']) ? date('m/d/Y', strtotime($pet['registered_on'])) : 'Unknown';
+                                    $petType = (string)($pet['pet_type'] ?? 'Unknown');
+                                    $ownerName = (string)($pet['owner_name'] ?? 'Unknown');
+                                ?>
                                 <div class="pending-item">
-                                    <div class="pending-avatar">
-                                        <?php echo strtoupper(substr($pet['name'], 0, 1)); ?>
+                                    <div class="pending-media">
+                                        <?php if ($photoOk): ?>
+                                            <img src="../uploads/<?php echo htmlspecialchars($photo); ?>" alt="<?php echo htmlspecialchars((string)$pet['name']); ?>">
+                                        <?php else: ?>
+                                            <div class="media-fallback">
+                                                <i class="fas fa-paw"></i>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <div class="pending-type-pill <?php echo htmlspecialchars($typeClass); ?>">
+                                            <?php echo htmlspecialchars(ucfirst($category)); ?>
+                                        </div>
+                                        <div class="pending-status-badge">Pending</div>
                                     </div>
-                                    <div class="pending-info">
-                                        <div class="pending-name"><?php echo htmlspecialchars($pet['name']); ?></div>
+
+                                    <div class="pending-body">
+                                        <h3 class="pending-name"><?php echo htmlspecialchars((string)$pet['name']); ?></h3>
+                                        <p class="pending-brief">
+                                            <strong>Registered:</strong> <?php echo htmlspecialchars($registeredOn); ?>
+                                        </p>
+
                                         <div class="pending-meta">
-                                            <?php echo htmlspecialchars($pet['category'] ?? 'Not specified'); ?> •
-                                            <?php echo htmlspecialchars($pet['pet_type'] ?? 'Not specified'); ?>
+                                            <div class="meta-item">
+                                                <div class="meta-label">Type</div>
+                                                <div class="meta-value"><?php echo htmlspecialchars($petType); ?></div>
+                                            </div>
+                                            <div class="meta-item">
+                                                <div class="meta-label">Owner</div>
+                                                <div class="meta-value"><?php echo htmlspecialchars($ownerName); ?></div>
+                                            </div>
                                         </div>
-                                        <div class="pending-owner">
-                                            Owner: <?php echo htmlspecialchars($pet['owner_name']); ?> •
-                                            Registered: <?php echo date('M j, Y', strtotime($pet['registered_on'])); ?>
+
+                                        <div class="pending-actions">
+                                            <a href="review_pet.php?id=<?php echo (int)$pet['id']; ?>" class="pending-review-btn">
+                                                <i class="fas fa-eye"></i>
+                                                Review
+                                            </a>
                                         </div>
-                                    </div>
-                                    <div class="pending-actions">
-                                        <a href="review_pet.php?id=<?php echo $pet['id']; ?>" class="btn-approve">
-                                            <i class="fas fa-eye"></i>
-                                            Review
-                                        </a>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -944,7 +1083,8 @@ try {
                 </div>
             </div>
         </div>
-
+    </div>
+</div>
 
 <?php include '../includes/footer.php'; ?>
 

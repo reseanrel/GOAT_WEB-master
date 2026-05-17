@@ -39,269 +39,408 @@ try {
 <?php include 'includes/header.php'; ?>
 
 <style>
+    /* Adoption - warm modern rescue UI (image-first cards) */
     .adoption {
         max-width: 1200px;
         margin: 0 auto;
         padding: var(--spacing-lg);
     }
 
-    .page-header {
-        text-align: center;
+    .adoption-hero {
+        position: relative;
+        border-radius: var(--radius-xl, 20px);
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: var(--shadow-lg);
+        background: #fff7ed;
         margin-bottom: var(--spacing-2xl);
-        padding: var(--spacing-2xl) 0;
     }
 
-    .page-title {
-        font-size: 32px;
-        font-weight: 700;
-        color: var(--color-text);
-        margin-bottom: var(--spacing-md);
+    .adoption-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 15% 20%, rgba(245,158,11,0.35) 0%, rgba(245,158,11,0) 45%),
+            radial-gradient(circle at 80% 30%, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0) 45%),
+            radial-gradient(circle at 60% 90%, rgba(37,99,235,0.12) 0%, rgba(37,99,235,0) 55%),
+            linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.35));
+        pointer-events: none;
     }
 
-    .page-subtitle {
+    .adoption-hero-inner {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: var(--spacing-xl);
+        padding: var(--spacing-2xl);
+        align-items: center;
+    }
+
+    .adoption-hero-title {
+        font-size: 44px;
+        line-height: 1.05;
+        font-weight: 900;
+        margin: 0 0 var(--spacing-md);
+        letter-spacing: -0.5px;
+        color: rgba(17,24,39,0.95);
+    }
+
+    .adoption-hero-subtitle {
+        margin: 0 0 var(--spacing-lg);
+        color: rgba(17,24,39,0.72);
         font-size: 16px;
-        color: var(--color-text-secondary);
-        margin: 0;
-        max-width: 600px;
-        margin: 0 auto;
+        max-width: 620px;
+        font-weight: 600;
     }
 
-    .quick-actions {
+    .lost-hero-actions,
+    .adoption-hero-actions {
         display: flex;
-        justify-content: center;
-        gap: var(--spacing-lg);
-        margin-bottom: var(--spacing-2xl);
+        gap: var(--spacing-md);
         flex-wrap: wrap;
+        align-items: center;
     }
 
-    .action-card {
-        background: var(--color-bg);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-lg);
-        padding: var(--spacing-xl);
-        text-align: center;
-        transition: all 0.3s ease;
+    .btn-primary-cta {
+        background: #f59e0b;
+        color: #fff;
+        border: none;
+        border-radius: var(--radius-lg, 18px);
+        padding: 14px 18px;
+        font-size: 15px;
+        font-weight: 900;
         cursor: pointer;
-        flex: 1;
-        min-width: 200px;
-        max-width: 300px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 10px 20px rgba(245,158,11,0.22);
+        transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+        min-width: 240px;
+        justify-content: center;
     }
 
-    .action-card:hover {
+    .btn-primary-cta:hover {
         transform: translateY(-2px);
+        box-shadow: 0 14px 28px rgba(245,158,11,0.28);
+        filter: saturate(1.05);
+    }
+
+    .btn-secondary-cta {
+        background: rgba(255,255,255,0.7);
+        border: 1px solid rgba(0,0,0,0.08);
+        color: rgba(17,24,39,0.86);
+        border-radius: var(--radius-lg, 18px);
+        padding: 13px 16px;
+        font-size: 15px;
+        font-weight: 900;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .btn-secondary-cta:hover {
+        transform: translateY(-2px);
+        background: rgba(255,255,255,0.9);
         box-shadow: var(--shadow-md);
     }
 
-    .action-icon {
-        font-size: 24px;
-        color: var(--color-primary);
-        margin-bottom: var(--spacing-md);
+    .adoption-hero-stat {
+        width: 100%;
+        max-width: 320px;
+        background: rgba(255,255,255,0.7);
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: var(--radius-xl, 20px);
+        padding: var(--spacing-lg);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.06);
     }
 
-    .action-title {
-        font-size: 18px;
-        font-weight: 600;
-        color: var(--color-text);
-        margin-bottom: var(--spacing-sm);
-    }
-
-    .action-description {
-        font-size: 14px;
-        color: var(--color-text-secondary);
-        margin: 0;
-    }
-
-    .section-divider {
-        height: 1px;
-        background: var(--color-border);
-        margin: var(--spacing-2xl) 0;
-    }
-
-    .pets-section {
-        margin-top: var(--spacing-2xl);
-    }
-
-    .section-title {
-        font-size: 24px;
-        font-weight: 600;
-        color: var(--color-text);
-        margin-bottom: var(--spacing-lg);
-        text-align: center;
-    }
-
-    .pets-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: var(--spacing-xl);
-    }
-
-    .pet-card {
-        background: var(--color-bg);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-        transition: all 0.3s ease;
-    }
-
-    .pet-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .pet-image {
-        height: 180px;
-        background: var(--color-bg-secondary);
+    .adoption-hero-stat .label {
+        font-weight: 900;
+        color: rgba(17,24,39,0.66);
+        margin-bottom: 8px;
         display: flex;
+        gap: 10px;
         align-items: center;
-        justify-content: center;
-        position: relative;
-        overflow: hidden;
     }
 
-    .pet-image img {
+    .adoption-hero-stat .value {
+        font-size: 28px;
+        font-weight: 1000;
+        color: rgba(17,24,39,0.92);
+        line-height: 1.1;
+    }
+
+    .adoption-hero-stat .hint {
+        margin-top: 10px;
+        font-size: 13px;
+        color: rgba(17,24,39,0.62);
+        font-weight: 700;
+    }
+
+    /* Image-first pet finder cards */
+    .adoption-section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+        padding: 0 4px;
+    }
+
+    .adoption-section-head h2 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 1000;
+        color: rgba(17,24,39,0.95);
+    }
+
+    .adoption-section-head p {
+        margin: 0;
+        color: rgba(17,24,39,0.62);
+        font-weight: 700;
+        max-width: 560px;
+    }
+
+    .adoption-pets-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: var(--spacing-lg);
+        align-items: stretch;
+    }
+
+    .pet-adoption-card {
+        background: rgba(255,255,255,0.92);
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: var(--radius-xl, 20px);
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+        display: flex;
+        flex-direction: column;
+        min-height: 480px;
+    }
+
+    .pet-adoption-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-xl);
+        border-color: rgba(245,158,11,0.30);
+    }
+
+    .pet-adoption-media {
+        height: 210px;
+        position: relative;
+        background: #fff;
+    }
+
+    .pet-adoption-media img {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        display: block;
     }
 
-    .pet-image .no-image {
-        color: var(--color-text-muted);
-        font-size: 48px;
-    }
-
-    .pet-badge {
-        position: absolute;
-        top: var(--spacing-md);
-        right: var(--spacing-md);
-        background: var(--color-success);
-        color: white;
-        padding: var(--spacing-xs) var(--spacing-sm);
-        border-radius: var(--radius-md);
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-
-    .pet-content {
-        padding: var(--spacing-lg);
-    }
-
-    .pet-name {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--color-text);
-        margin-bottom: var(--spacing-sm);
-        text-align: center;
-    }
-
-    .pet-category {
-        display: inline-block;
-        background: var(--color-primary);
-        color: white;
-        padding: var(--spacing-xs) var(--spacing-sm);
-        border-radius: var(--radius-sm);
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        margin-bottom: var(--spacing-md);
-    }
-
-    .pet-details {
-        margin-bottom: var(--spacing-lg);
-    }
-
-    .pet-detail {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: var(--spacing-xs) 0;
-        border-bottom: 1px solid var(--color-border);
-    }
-
-    .pet-detail:last-child {
-        border-bottom: none;
-    }
-
-    .detail-label {
-        font-weight: 600;
-        color: var(--color-text);
-        font-size: 14px;
-    }
-
-    .detail-value {
-        color: var(--color-text-secondary);
-        font-size: 14px;
-    }
-
-    .pet-actions {
-        display: flex;
-        gap: var(--spacing-sm);
-    }
-
-    .btn-pet {
-        flex: 1;
-        padding: var(--spacing-sm) var(--spacing-md);
-        border-radius: var(--radius-md);
-        font-size: 14px;
-        font-weight: 600;
-        text-decoration: none;
-        text-align: center;
-        border: none;
-        cursor: pointer;
-        transition: all 0.3s ease;
+    .pet-adoption-media .media-fallback {
+        width: 100%;
+        height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: var(--spacing-xs);
+        background: rgba(17,24,39,0.03);
+        color: rgba(17,24,39,0.45);
+        font-size: 52px;
     }
 
-    .btn-pet.primary {
-        background: var(--color-primary);
-        color: white;
+    /* badges */
+    .status-badge {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 1000;
+        letter-spacing: 0.3px;
+        color: #fff;
+        background: #f59e0b;
+        box-shadow: 0 10px 20px rgba(245,158,11,0.18);
+        text-transform: uppercase;
+        border: 1px solid rgba(255,255,255,0.18);
     }
 
-    .btn-pet.primary:hover {
-        background: var(--color-primary-dark, #2c5282);
-        transform: translateY(-1px);
+    .pet-type-pill {
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 1000;
+        letter-spacing: 0.2px;
+        color: #0f172a;
+        background: rgba(255,255,255,0.78);
+        border: 1px solid rgba(0,0,0,0.06);
+        backdrop-filter: blur(6px);
     }
 
-    .btn-pet.secondary {
-        background: var(--color-bg-secondary);
-        color: var(--color-text);
-        border: 1px solid var(--color-border);
+    .type-dog {
+        background: rgba(37,99,235,0.12);
+        border-color: rgba(37,99,235,0.25);
+        color: #1d4ed8;
+    }
+    .type-cat {
+        background: rgba(16,185,129,0.12);
+        border-color: rgba(16,185,129,0.25);
+        color: #0f766e;
+    }
+    .type-other {
+        background: rgba(148,163,184,0.18);
+        border-color: rgba(148,163,184,0.28);
+        color: #334155;
     }
 
-    .btn-pet.secondary:hover {
-        background: var(--color-bg);
-        transform: translateY(-1px);
+    .pet-adoption-body {
+        padding: var(--spacing-lg);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .pet-adoption-name {
+        font-size: 18px;
+        font-weight: 1000;
+        color: rgba(17,24,39,0.95);
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .pet-adoption-brief {
+        margin: 0;
+        color: rgba(17,24,39,0.62);
+        font-weight: 750;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .adoption-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 12px;
+        margin-top: 6px;
+    }
+
+    .meta-item {
+        border: 1px solid rgba(0,0,0,0.05);
+        background: rgba(255,255,255,0.65);
+        border-radius: 14px;
+        padding: 8px 10px;
+    }
+
+    .meta-label {
+        font-size: 11px;
+        font-weight: 1000;
+        color: rgba(17,24,39,0.55);
+        text-transform: uppercase;
+        letter-spacing: .3px;
+        margin-bottom: 4px;
+    }
+
+    .meta-value {
+        font-size: 13px;
+        font-weight: 900;
+        color: rgba(17,24,39,0.9);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .pet-adoption-actions {
+        margin-top: auto;
+        padding-top: var(--spacing-md);
+        border-top: 1px solid rgba(0,0,0,0.06);
+        display: grid;
+        gap: 10px;
+    }
+
+    .apply-btn {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        border-radius: var(--radius-lg, 18px);
+        padding: 12px 14px;
+        background: #111827;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 1000;
+        border: 1px solid rgba(0,0,0,0.08);
+        cursor: pointer;
+        transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .apply-btn:hover {
+        transform: translateY(-2px);
+        background: #0f172a;
+        box-shadow: var(--shadow-md);
+    }
+
+    .contact-btn {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        border-radius: var(--radius-lg, 18px);
+        padding: 11px 14px;
+        background: rgba(255,255,255,0.7);
+        color: rgba(17,24,39,0.9);
+        text-decoration: none;
+        font-weight: 1000;
+        border: 1px solid rgba(0,0,0,0.08);
+        cursor: pointer;
+        transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .contact-btn:hover {
+        transform: translateY(-2px);
+        background: rgba(255,255,255,0.92);
+        box-shadow: var(--shadow-md);
     }
 
     .empty-state {
         text-align: center;
         padding: var(--spacing-3xl) var(--spacing-2xl);
-        background: var(--color-bg);
-        border: 2px dashed var(--color-border);
-        border-radius: var(--radius-xl);
+        background: rgba(255,255,255,0.7);
+        border: 2px dashed rgba(0,0,0,0.12);
+        border-radius: var(--radius-xl, 20px);
         grid-column: 1 / -1;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.03);
     }
 
-    .empty-icon {
+    .empty-state .empty-icon {
         font-size: 64px;
-        color: var(--color-text-muted);
+        color: rgba(17,24,39,0.40);
         margin-bottom: var(--spacing-lg);
     }
 
     .empty-state h3 {
-        color: var(--color-text);
-        font-size: 24px;
-        font-weight: 600;
-        margin-bottom: var(--spacing-md);
+        font-size: 22px;
+        font-weight: 1000;
+        margin: 0 0 var(--spacing-md);
+        color: rgba(17,24,39,0.95);
     }
 
     .empty-state p {
-        color: var(--color-text-secondary);
-        font-size: 16px;
         margin: 0;
+        color: rgba(17,24,39,0.62);
+        font-weight: 750;
     }
 
     /* Modal */
@@ -389,6 +528,7 @@ try {
         padding: var(--spacing-sm) var(--spacing-lg);
         border-radius: var(--radius-md);
         cursor: pointer;
+        font-weight: 800;
     }
 
     .btn-cancel:hover {
@@ -396,130 +536,163 @@ try {
         color: var(--color-bg);
     }
 
+    /* Small screens */
+    @media (max-width: 900px) {
+        .adoption-hero-inner {
+            grid-template-columns: 1fr;
+        }
+    }
+
     @media (max-width: 768px) {
         .adoption {
             padding: var(--spacing-md);
         }
 
-        .pets-grid {
-            grid-template-columns: 1fr;
-            gap: var(--spacing-lg);
+        .adoption-hero-inner {
+            padding: var(--spacing-xl);
         }
 
-        .quick-actions {
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .action-card {
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .pet-actions {
-            flex-direction: column;
-        }
-
-        .btn-pet {
-            width: 100%;
+        .adoption-hero-title {
+            font-size: 34px;
         }
     }
 </style>
 
 <div class="adoption">
-    <div class="page-header">
-        <h1 class="page-title">Pet Adoption</h1>
-        <p class="page-subtitle">Find loving homes for pets in need</p>
-    </div>
+    <section class="adoption-hero" aria-label="Pet Adoption hero">
+        <div class="adoption-hero-inner">
+            <div>
+                <h1 class="adoption-hero-title">Adopt a Loving Future.</h1>
+                <p class="adoption-hero-subtitle">
+                    Browse pets available for adoption. Image-first cards help you choose quickly—and reach out with kindness.
+                </p>
 
-    <div class="quick-actions">
-        <div class="action-card" onclick="document.getElementById('adoptionInfoModal').style.display='flex'">
-            <div class="action-icon">
-                <i class="fas fa-info-circle"></i>
-            </div>
-            <div class="action-title">How It Works</div>
-            <div class="action-description">Learn about our adoption process</div>
-        </div>
+                <div class="adoption-hero-actions">
+                    <button class="btn-secondary-cta" type="button" onclick="document.getElementById('adoptionInfoModal').style.display='flex'">
+                        <i class="fas fa-info-circle"></i>
+                        How It Works
+                    </button>
 
-        <?php if (!empty($userPets)): ?>
-        <div class="action-card" onclick="document.getElementById('offerModal').style.display='flex'">
-            <div class="action-icon">
-                <i class="fas fa-plus"></i>
-            </div>
-            <div class="action-title">List Your Pet</div>
-            <div class="action-description">Offer a pet for adoption</div>
-        </div>
-        <?php endif; ?>
-    </div>
-
-    <div class="section-divider"></div>
-
-    <div class="pets-section">
-        <h2 class="section-title">Available Pets</h2>
-
-        <div class="pets-grid">
-            <?php if (empty($adoptionPets)): ?>
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fas fa-heart"></i>
-                    </div>
-                    <h3>No Pets Available</h3>
-                    <p>There are currently no pets available for adoption. Check back later!</p>
+                    <?php if (!empty($userPets)): ?>
+                        <button class="btn-primary-cta" type="button" onclick="document.getElementById('offerModal').style.display='flex'">
+                            <i class="fas fa-plus"></i>
+                            List Your Pet
+                        </button>
+                    <?php else: ?>
+                        <button class="btn-primary-cta" type="button" onclick="alert('List your pet for adoption from your dashboard when eligible.')">
+                            <i class="fas fa-plus"></i>
+                            List Your Pet
+                        </button>
+                    <?php endif; ?>
                 </div>
-            <?php else: ?>
-                <?php foreach ($adoptionPets as $pet): ?>
-                    <div class="pet-card">
-                        <div class="pet-image">
-                            <?php
-                            $photo = $pet['photo_path'] ?? ($pet['photo_url'] ?? '');
-                            $photo = is_string($photo) ? $photo : '';
-                            ?>
-                            <?php if (!empty($photo) && file_exists('../uploads/' . $photo)): ?>
-                                <img src="../uploads/<?php echo htmlspecialchars($photo); ?>" alt="<?php echo htmlspecialchars($pet['name']); ?>">
-                            <?php else: ?>
-                                <i class="fas fa-paw no-image"></i>
-                            <?php endif; ?>
-                            <div class="pet-badge">For Adoption</div>
+            </div>
+
+            <div class="adoption-hero-stat">
+                <div class="label">
+                    <i class="fas fa-heart"></i>
+                    Available pets
+                </div>
+                <div class="value"><?php echo (int)count($adoptionPets); ?></div>
+                <div class="hint">Ready for loving homes in our community.</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="adoption-section-head" id="adoptionPetsList">
+        <div>
+            <h2>Available Pets</h2>
+            <p>Modern adoption cards with quick info—so you can move fast when your heart finds “the one.”</p>
+        </div>
+    </div>
+
+    <div class="adoption-pets-grid">
+        <?php if (empty($adoptionPets)): ?>
+            <div class="empty-state">
+                <div class="empty-icon"><i class="fas fa-heart"></i></div>
+                <h3>No Pets Available</h3>
+                <p>There are currently no pets available for adoption. Check back later!</p>
+            </div>
+        <?php else: ?>
+            <?php foreach ($adoptionPets as $pet): ?>
+                <?php
+                    $photo = $pet['photo_path'] ?? ($pet['photo_url'] ?? '');
+                    $photo = is_string($photo) ? $photo : '';
+
+                    $photoOk = !empty($photo) && file_exists('../uploads/' . $photo);
+
+                    $category = $pet['category'] ?? 'PET';
+                    $petType = $pet['pet_type'] ?? 'Unknown';
+                    $color = $pet['color'] ?? 'Unknown';
+                    $gender = $pet['gender'] ?? 'Unknown';
+                    $ageYears = $pet['age'] ? htmlspecialchars($pet['age']) . ' years' : 'Unknown';
+
+                    $registeredOn = !empty($pet['registered_on']) ? date('m/d/Y', strtotime($pet['registered_on'])) : 'Unknown';
+
+                    // “Last seen location” equivalent: pets table doesn’t store a dedicated field,
+                    // but we can show owner address only if provided by current query. We didn't join it here.
+                    // Fallback to "Location not provided".
+                    $lastSeenLocation = 'Location not provided';
+
+                    $typeClass = 'type-other';
+                    if (strtolower((string)$category) === 'dog') $typeClass = 'type-dog';
+                    if (strtolower((string)$category) === 'cat') $typeClass = 'type-cat';
+                ?>
+                <div class="pet-adoption-card">
+                    <div class="pet-adoption-media">
+                        <?php if ($photoOk): ?>
+                            <img src="../uploads/<?php echo htmlspecialchars($photo); ?>" alt="<?php echo htmlspecialchars($pet['name']); ?>">
+                        <?php else: ?>
+                            <div class="media-fallback"><i class="fas fa-paw"></i></div>
+                        <?php endif; ?>
+
+                        <div class="pet-type-pill <?php echo htmlspecialchars($typeClass); ?>">
+                            <?php echo htmlspecialchars($category); ?>
+                        </div>
+                        <div class="status-badge">FOR ADOPTION</div>
+                    </div>
+
+                    <div class="pet-adoption-body">
+                        <h3 class="pet-adoption-name"><?php echo htmlspecialchars($pet['name']); ?></h3>
+
+                        <p class="pet-adoption-brief">
+                            <strong>Location:</strong> <?php echo htmlspecialchars($lastSeenLocation); ?><br>
+                            <strong>Date:</strong> <?php echo htmlspecialchars($registeredOn); ?>
+                        </p>
+
+                        <div class="adoption-meta">
+                            <div class="meta-item">
+                                <div class="meta-label">Type</div>
+                                <div class="meta-value"><?php echo htmlspecialchars($petType); ?></div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Color</div>
+                                <div class="meta-value"><?php echo htmlspecialchars($color); ?></div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Age</div>
+                                <div class="meta-value"><?php echo $ageYears; ?></div>
+                            </div>
+                            <div class="meta-item">
+                                <div class="meta-label">Gender</div>
+                                <div class="meta-value"><?php echo htmlspecialchars($gender); ?></div>
+                            </div>
                         </div>
 
-                        <div class="pet-content">
-                            <div class="pet-category"><?php echo htmlspecialchars($pet['category'] ?? 'PET'); ?></div>
-                            <h3 class="pet-name"><?php echo htmlspecialchars($pet['name']); ?></h3>
+                        <div class="pet-adoption-actions">
+                            <a href="user/adoption_application.php?pet_id=<?php echo $pet['id']; ?>" class="apply-btn">
+                                <i class="fas fa-heart"></i>
+                                Apply to Adopt
+                            </a>
 
-                            <div class="pet-details">
-                                <div class="pet-detail">
-                                    <span class="detail-label">Age:</span>
-                                    <span class="detail-value"><?php echo $pet['age'] ? htmlspecialchars($pet['age']) . ' years' : 'Unknown'; ?></span>
-                                </div>
-                                <div class="pet-detail">
-                                    <span class="detail-label">Gender:</span>
-                                    <span class="detail-value"><?php echo htmlspecialchars($pet['gender'] ?? 'Unknown'); ?></span>
-                                </div>
-                                <div class="pet-detail">
-                                    <span class="detail-label">Type:</span>
-                                    <span class="detail-value"><?php echo htmlspecialchars($pet['pet_type'] ?? 'Unknown'); ?></span>
-                                </div>
-                                <div class="pet-detail">
-                                    <span class="detail-label">Color:</span>
-                                    <span class="detail-value"><?php echo htmlspecialchars($pet['color'] ?? 'Unknown'); ?></span>
-                                </div>
-                            </div>
-
-                            <div class="pet-actions">
-                                <a href="user/adoption_application.php?pet_id=<?php echo $pet['id']; ?>" class="btn-pet primary">
-                                    <i class="fas fa-heart"></i>
-                                    Apply to Adopt
-                                </a>
-                                <button class="btn-pet secondary" onclick="contactOwner('<?php echo htmlspecialchars($pet['owner_email']); ?>', '<?php echo htmlspecialchars($pet['name']); ?>')">
-                                    <i class="fas fa-envelope"></i>
-                                    Contact Owner
-                                </button>
-                            </div>
+                            <button class="contact-btn" onclick="contactOwner('<?php echo htmlspecialchars($pet['owner_email']); ?>', '<?php echo htmlspecialchars($pet['name']); ?>')">
+                                <i class="fas fa-envelope"></i>
+                                Contact Owner
+                            </button>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -577,7 +750,7 @@ try {
                     <label style="display: block; margin-bottom: var(--spacing-md); font-weight: 600; color: var(--color-text);">
                         Select Your Pet
                     </label>
-                    <select id="petSelect" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-border); border-radius: var(--radius-md);" required>
+                    <select id="petSelect" class="modal-control" required>
                         <option value="">Choose a pet...</option>
                         <?php foreach ($userPets as $pet): ?>
                             <option value="<?php echo $pet['id']; ?>">
@@ -590,13 +763,15 @@ try {
                     <label style="display: block; margin-bottom: var(--spacing-md); font-weight: 600; color: var(--color-text);">
                         Adoption Details
                     </label>
-                    <textarea name="comment" rows="4" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: inherit;" required
+                    <textarea name="comment" rows="4" class="modal-control modal-textarea" required
                               placeholder="Describe the pet's personality, any special needs, reason for adoption, etc."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="closeOfferModal()">Cancel</button>
-                <button type="submit" style="background: var(--color-primary); color: white; border: none; padding: var(--spacing-sm) var(--spacing-lg); border-radius: var(--radius-md); cursor: pointer;">Offer for Adoption</button>
+                <button type="submit" style="background: var(--color-primary); color: white; border: none; padding: var(--spacing-sm) var(--spacing-lg); border-radius: var(--radius-md); cursor: pointer;">
+                    Offer for Adoption
+                </button>
             </div>
         </form>
     </div>

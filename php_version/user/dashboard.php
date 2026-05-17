@@ -38,7 +38,7 @@ $userPets = getUserPets($_SESSION['user_id']);
     .stat-icon {
         width: 48px;
         height: 48px;
-        background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -51,7 +51,7 @@ $userPets = getUserPets($_SESSION['user_id']);
     .stat-number {
         font-size: 32px;
         font-weight: 700;
-        color: var(--color-primary);
+        color: #f59e0b;
         margin-bottom: var(--spacing-xs);
     }
 
@@ -147,14 +147,20 @@ $userPets = getUserPets($_SESSION['user_id']);
         flex: 1;
         display: flex;
         flex-direction: column;
+        background: var(--color-bg); /* ensure body area is visible under header theme */
+        color: var(--color-text);
     }
 
     .pet-name {
         font-size: 18px;
         font-weight: 700;
-        color: var(--color-text);
+        color: var(--color-text) !important;
         margin-bottom: var(--spacing-sm);
         text-align: center;
+    }
+
+    .pet-category {
+        color: var(--color-primary) !important;
     }
 
     .pet-category {
@@ -220,12 +226,13 @@ $userPets = getUserPets($_SESSION['user_id']);
     }
 
     .btn-pet.primary {
-        background: var(--color-primary);
+        background: #f59e0b;
         color: white;
+        border: 1px solid rgba(0,0,0,0.06);
     }
 
     .btn-pet.primary:hover {
-        background: var(--color-primary-dark, #0056b3);
+        background: #d97706;
         transform: translateY(-1px);
     }
 
@@ -359,8 +366,6 @@ $lostPets = $stmt->fetch()['total'];
 $stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE owner_id = {$_SESSION['user_id']} AND available_for_adoption = 1 AND archived = 0 AND status = 'approved' AND deceased = 0");
 $adoptionPets = $stmt->fetch()['total'];
 
-$stmt = $conn->query("SELECT COUNT(*) as total FROM medical_records WHERE pet_id IN (SELECT id FROM pets WHERE owner_id = {$_SESSION['user_id']} AND archived = 0)");
-$totalRecords = $stmt->fetch()['total'];
 ?>
 
     <div class="dashboard-header">
@@ -402,13 +407,6 @@ $totalRecords = $stmt->fetch()['total'];
         <div class="stat-label">For Adoption</div>
     </div>
 
-    <div class="stat-card">
-        <div class="stat-icon">
-            <i class="fas fa-notes-medical"></i>
-        </div>
-        <div class="stat-number"><?php echo $totalRecords; ?></div>
-        <div class="stat-label">Medical Records</div>
-    </div>
 </div>
 
 <?php if (empty($userPets)): ?>
@@ -428,8 +426,8 @@ $totalRecords = $stmt->fetch()['total'];
         <?php foreach ($userPets as $pet): ?>
             <div class="pet-card">
                 <div class="pet-image">
-                    <?php if (!empty($pet['photo_path']) && file_exists('../uploads/' . $pet['photo_path'])): ?>
-                        <img src="../uploads/<?php echo htmlspecialchars($pet['photo_path']); ?>" alt="<?php echo htmlspecialchars($pet['name']); ?>">
+<?php if (!empty($pet['photo_path']) && file_exists('../static/uploads/' . $pet['photo_path'])): ?>
+                        <img src="../static/uploads/<?php echo htmlspecialchars($pet['photo_path']); ?>" alt="<?php echo htmlspecialchars($pet['name']); ?>">
                     <?php else: ?>
                         <i class="fas fa-paw no-image"></i>
                     <?php endif; ?>
