@@ -95,6 +95,46 @@ class EmailService {
         
         return self::sendEmail($ownerEmail, $subject, $htmlContent, $textContent, $from);
     }
+
+    public static function sendAdoptionApplicationSubmittedEmail($ownerEmail, $ownerName, $petName, $applicantName) {
+        $subject = "New Adoption Application for Your Pet: $petName";
+        $from = COMPANY_NAME . " <" . MAIL_USERNAME . ">";
+
+        $htmlContent = "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #1a73e8; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
+                .footer { margin-top: 20px; padding: 20px; background: #f1f1f1; text-align: center; border-radius: 5px; font-size: 12px; color: #666; }
+                .pill { display:inline-block; background:#e8f5e8; color:#2e7d32; padding:6px 10px; border-radius:999px; font-weight:700; }
+            </style>
+        </head>
+        <body>
+            <div class='header'>
+                <h1>" . COMPANY_NAME . " - Adoption Application</h1>
+            </div>
+            <div class='content'>
+                <p>Dear $ownerName,</p>
+                <p><span class='pill'>New</span> an adopter has submitted an application for your pet:</p>
+                <p style='font-size:16px; margin: 10px 0;'><strong>$petName</strong></p>
+                <p>Applicant name: <strong>$applicantName</strong></p>
+                <p>Your application status will be reviewed and you will be contacted through the details provided by the applicant.</p>
+                <p>Best regards,<br>Pila Pets Administration<br>Municipality of Pila, Laguna</p>
+            </div>
+            <div class='footer'>
+                <p>This is an automated message. Please do not reply to this email.</p>
+                <p>&copy; 2024 " . COMPANY_NAME . ". All rights reserved.</p>
+            </div>
+        </body>
+        </html>";
+
+        $textContent = "Dear $ownerName,\n\nAn adoption application has been submitted for your pet.\n\nPet: $petName\nApplicant: $applicantName\n\nBest regards,\nPila Pets Administration";
+
+        return self::sendEmail($ownerEmail, $subject, $htmlContent, $textContent, $from);
+    }
     
     private static function getVerificationEmailHTML($code) {
         return "
@@ -137,33 +177,143 @@ class EmailService {
     }
     
     private static function sendEmail($to, $subject, $htmlContent, $textContent, $from) {
-        require_once 'PHPMailer/PHPMailer.php';
-        require_once 'PHPMailer/SMTP.php';
-        require_once 'PHPMailer/Exception.php';
-        
-        $mail = new PHPMailer\PHPMailer\PHPMailer(true);
-        
         try {
-            $mail->isSMTP();
-            $mail->Host = MAIL_SERVER;
-            $mail->SMTPAuth = true;
-            $mail->Username = MAIL_USERNAME;
-            $mail->Password = MAIL_PASSWORD;
-            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = MAIL_PORT;
-            
-            $mail->setFrom(MAIL_USERNAME, COMPANY_NAME);
-            $mail->addAddress($to);
-            
-            $mail->isHTML(true);
-            $mail->Subject = $subject;
-            $mail->Body = $htmlContent;
-            $mail->AltBody = $textContent;
-            
-            $mail->send();
+            // Gmail SMTP via STARTTLS (port 587)
+            $socket = fsockopen('tcp://' . MAIL_SERVER, MAIL_PORT, $errno, $errstr, 30);
+
+            if (!$socket) {
+                throw new Exception("Cannot connect to Gmail SMTP: $errstr ($errno)");
+            }
+
+            // Server greeting
+            $response = fgets($socket, 512);
+            if (!preg_match('/^220/', $response)) {
+                throw new Exception("SMTP greeting failed: " . $response);
+            }
+
+            // EHLO
+            fputs($socket, "EHLO localhost\r\n");
+            do {
+                $response = fgets($socket, 512);
+            } while (!preg_match('/^250\s/', $response) && !feof($socket));
+
+            // STARTTLS
+            fputs($socket, "STARTTLS\r\n");
+            $response = fgets($socket, 512);
+            if (!preg_match('/^220/', $response)) {
+                throw new Exception("STARTTLS failed: " . $response);
+            }
+
+            // Enable encryption
+            stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+
+            // EHLO again
+            fputs($socket, "EHLO localhost\r\n");
+            do {
+                $response = fgets($socket, 512);
+            } while (!preg_match('/^250\s/', $response) && !feof($socket));
+
+            // AUTH LOGIN
+            fputs($socket, "AUTH LOGIN\r\n");
+            $response = fgets($socket, 512);
+            if (!preg_match('/^334/', $response)) {
+                throw new Exception("AUTH LOGIN failed: " . $response);
+            }
+
+            // Username
+            fputs($socket, base64_encode(MAIL_USERNAME) . "\r\n");
+            $response = fgets($socket, 512);
+            if (!preg_match('/^334/', $response)) {
+                throw new Exception("Username authentication failed: " . $response);
+            }
+
+            // Password
+            fputs($socket, base64_encode(MAIL_PASSWORD) . "\r\n");
+            $response = fgets($socket, 512);
+            if (!preg_match('/^235/', $response)) {
+                throw new Exception("Password authentication failed: " . $response);
+            }
+
+            // MAIL FROM
+            fputs($socket, "MAIL FROM:<" . MAIL_USERNAME . ">\r\n");
+            $response = fgets($socket, 512);
+            if (!preg_match('/^250/', $response)) {
+                throw new Exception("MAIL FROM failed: " . $response);
+            }
+
+            // RCPT TO
+            fputs($socket, "RCPT TO:<$to>\r\n");
+            $response = fgets($socket, 512);
+            if (!preg_match('/^250/', $response)) {
+                throw new Exception("RCPT TO failed: " . $response);
+            }
+
+            // DATA
+            fputs($socket, "DATA\r\n");
+            $response = fgets($socket, 512);
+            if (!preg_match('/^354/', $response)) {
+                throw new Exception("DATA command failed: " . $response);
+            }
+
+            // Build email (multipart alternative)
+            $boundary = 'boundary_' . md5(time());
+
+            $emailContent = "Subject: $subject\r\n";
+            $emailContent .= "MIME-Version: 1.0\r\n";
+            $emailContent .= "Content-Type: multipart/alternative; boundary=\"$boundary\"\r\n";
+            $emailContent .= "From: $from\r\n";
+            $emailContent .= "To: $to\r\n";
+            $emailContent .= "Reply-To: " . MAIL_USERNAME . "\r\n";
+            $emailContent .= "X-Mailer: PHP/" . phpversion() . "\r\n\r\n";
+
+            // Text part
+            $emailContent .= "--$boundary\r\n";
+            $emailContent .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $emailContent .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+            $emailContent .= $textContent . "\r\n\r\n";
+
+            // HTML part
+            $emailContent .= "--$boundary\r\n";
+            $emailContent .= "Content-Type: text/html; charset=UTF-8\r\n";
+            $emailContent .= "Content-Transfer-Encoding: 7bit\r\n\r\n";
+            $emailContent .= $htmlContent . "\r\n\r\n";
+
+            $emailContent .= "--$boundary--\r\n";
+            $emailContent .= ".\r\n";
+
+            // Send email body
+            fputs($socket, $emailContent);
+
+            // Response after end-of-data
+            $response = fgets($socket, 512);
+            if (!preg_match('/^250/', $response)) {
+                throw new Exception("Email sending failed: " . $response);
+            }
+
+            // QUIT
+            fputs($socket, "QUIT\r\n");
+            fclose($socket);
+
+            error_log("[SUCCESS] Email sent to $to via Gmail SMTP");
             return true;
         } catch (Exception $e) {
-            error_log("Email error: " . $mail->ErrorInfo);
+            if (isset($socket)) {
+                try { fputs($socket, "QUIT\r\n"); } catch (Throwable $ignore) {}
+                fclose($socket);
+            }
+
+            error_log("[ERROR] Gmail SMTP failed: " . $e->getMessage() . " - Falling back to file storage");
+
+            // Fallback: save to file if SMTP fails
+            $emailFile = __DIR__ . '/../emails/' . time() . '_' . md5($to) . '.html';
+            $emailsDir = __DIR__ . '/../emails';
+            if (!is_dir($emailsDir)) {
+                mkdir($emailsDir, 0755, true);
+            }
+
+            $emailContent = "<!-- GMAIL SMTP FAILED - EMAIL SAVED TO FILE -->\n" . $htmlContent;
+            file_put_contents($emailFile, $emailContent);
+
             return false;
         }
     }

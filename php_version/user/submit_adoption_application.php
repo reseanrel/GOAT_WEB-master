@@ -127,8 +127,28 @@ try {
         "ADOPTION APPLICATION SUBMITTED: New adoption application received from " . trim($_POST['full_name'])
     ]);
 
-    // Send email notification to pet owner (if email functionality exists)
-    // This would typically use a mail library like PHPMailer
+    // Email notification to pet owner
+    require_once '../config/email.php';
+
+    $stmt = $conn->prepare("
+        SELECT u.id, u.full_name, u.email
+        FROM users u
+        WHERE u.id = ?
+    ");
+    $stmt->execute([$pet['owner_id']]);
+    $petOwner = $stmt->fetch();
+
+    if (!empty($petOwner['email'])) {
+        error_log('[ADOPTION EMAIL] Sending adoption submission email to pet owner=' . $petOwner['email'] . ' pet=' . ($pet['name'] ?? '') . ' applicant=' . trim($_POST['full_name']));
+        EmailService::sendAdoptionApplicationSubmittedEmail(
+            $petOwner['email'],
+            $petOwner['full_name'] ?? 'Pet Owner',
+            $pet['name'],
+            trim($_POST['full_name'])
+        );
+    } else {
+        error_log('[ADOPTION EMAIL] Skipped email: pet owner email empty. pet_id=' . (int)$petId);
+    }
 
     $_SESSION['success'] = 'Your adoption application has been submitted successfully! The pet owner will review your application and contact you soon.';
 
