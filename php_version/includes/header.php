@@ -519,7 +519,7 @@
                     <li><a class="sidebar-link" href="/adoption.php"><i class="fas fa-heart"></i>Adoption</a></li>
                 <?php else: ?>
                     <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' && strpos($_SERVER['REQUEST_URI'], '/user/') !== false ? 'active' : ''; ?>" href="/user/dashboard.php"><i class="fas fa-home"></i>Dashboard</a></li>
-                    <li><a class="sidebar-link" href="/user/dashboard.php"><i class="fas fa-user"></i>Profile</a></li>
+                    <li><a class="sidebar-link" href="/user/edit_profile.php"><i class="fas fa-user"></i>Profile</a></li>
                     <li><a class="sidebar-link" href="/lost_pets.php"><i class="fas fa-search"></i>Lost Pets</a></li>
                     <li><a class="sidebar-link" href="/adoption.php"><i class="fas fa-heart"></i>Adoption</a></li>
                 <?php endif; ?>

@@ -6,382 +6,449 @@ require_once 'includes/auth.php';
 <?php include 'includes/header.php'; ?>
 
 <style>
-    .hero-section {
-        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
-        color: white;
-        padding: var(--spacing-2xl) 0;
-        margin: calc(-1 * var(--spacing-lg)) calc(-1 * var(--spacing-lg)) var(--spacing-2xl);
-        border-radius: 0 0 var(--radius-xl) var(--radius-xl);
-        position: relative;
-        overflow: hidden;
+    /* Index - warm modern rescue UI (like lost/adoption) */
+    .index-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: var(--spacing-lg);
     }
 
-    .hero-section::before {
+    .index-hero {
+        position: relative;
+        border-radius: var(--radius-xl, 20px);
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: var(--shadow-lg);
+        background: #fff7ed;
+        margin: calc(-1 * var(--spacing-lg)) 0 var(--spacing-2xl);
+    }
+
+    .index-hero::before {
         content: '';
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.05)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.1)"/><circle cx="90" cy="40" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-        opacity: 0.5;
+        inset: 0;
+        background:
+            radial-gradient(circle at 15% 20%, rgba(245,158,11,0.35) 0%, rgba(245,158,11,0) 45%),
+            radial-gradient(circle at 80% 30%, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0) 45%),
+            radial-gradient(circle at 60% 90%, rgba(37,99,235,0.12) 0%, rgba(37,99,235,0) 55%),
+            linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.35));
+        pointer-events: none;
+        opacity: 0.95;
     }
 
-    .hero-content {
+    .index-hero-inner {
         position: relative;
-        z-index: 1;
-        text-align: center;
-        max-width: 600px;
-        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1.25fr 0.75fr;
+        gap: var(--spacing-xl);
+        padding: var(--spacing-2xl);
+        align-items: center;
     }
 
-    .hero-title {
-        font-size: clamp(32px, 5vw, 48px);
-        font-weight: 700;
+    .index-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: 8px 12px;
+        border-radius: var(--radius-lg, 16px);
+        background: rgba(245,158,11,0.16);
+        border: 1px solid rgba(245,158,11,0.25);
+        width: fit-content;
+        font-weight: 900;
+        color: #9a3412;
         margin-bottom: var(--spacing-md);
-        letter-spacing: -1px;
+    }
+
+    .index-title {
+        font-size: 46px;
+        line-height: 1.05;
+        font-weight: 900;
+        color: rgba(17,24,39,0.95);
+        margin: 0 0 var(--spacing-md);
+        letter-spacing: -0.5px;
+    }
+
+    .index-subtitle {
+        margin: 0 0 var(--spacing-lg);
+        color: rgba(17,24,39,0.72);
+        font-size: 16px;
+        max-width: 620px;
+        font-weight: 650;
+        line-height: 1.6;
+    }
+
+    .index-hero-actions {
+        display: flex;
+        gap: var(--spacing-md);
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .btn-primary-cta {
+        background: var(--color-warning);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius-lg, 18px);
+        padding: 14px 18px;
+        font-size: 15px;
+        font-weight: 900;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 10px 20px rgba(217,119,6,0.22);
+        transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+        min-width: 240px;
+        justify-content: center;
+    }
+
+    .btn-primary-cta:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 28px rgba(217,119,6,0.28);
+        filter: saturate(1.05);
+    }
+
+    .btn-secondary-cta {
+        background: rgba(255,255,255,0.7);
+        border: 1px solid rgba(0,0,0,0.08);
+        color: rgba(17,24,39,0.88);
+        border-radius: var(--radius-lg, 18px);
+        padding: 13px 16px;
+        font-size: 15px;
+        font-weight: 900;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+        min-width: 200px;
+        justify-content: center;
+    }
+
+    .btn-secondary-cta:hover {
+        transform: translateY(-2px);
+        background: rgba(255,255,255,0.92);
+        box-shadow: var(--shadow-md);
+    }
+
+    .index-stat {
+        width: 100%;
+        max-width: 320px;
+        background: rgba(255,255,255,0.7);
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: var(--radius-xl, 20px);
+        padding: var(--spacing-lg);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+        margin-left: auto;
+    }
+
+    .index-stat .label {
+        font-weight: 950;
+        color: rgba(17,24,39,0.66);
+        margin-bottom: 10px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .index-stat .value {
+        font-size: 30px;
+        font-weight: 1000;
+        color: rgba(17,24,39,0.92);
         line-height: 1.1;
     }
 
-    .hero-subtitle {
-        font-size: 18px;
-        font-weight: 400;
-        opacity: 0.9;
-        line-height: 1.6;
-        margin-bottom: var(--spacing-xl);
+    .index-stat .hint {
+        margin-top: 10px;
+        font-size: 13px;
+        color: rgba(17,24,39,0.62);
+        font-weight: 650;
     }
 
-    .hero-cta {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--spacing-sm);
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        color: white;
-        padding: var(--spacing-md) var(--spacing-xl);
-        border-radius: var(--radius-lg);
-        text-decoration: none;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-
-    .hero-cta:hover {
-        background: rgba(255, 255, 255, 0.3);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-    }
-
-    .features-grid {
+    .index-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: var(--spacing-xl);
-        margin: var(--spacing-2xl) 0;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: var(--spacing-lg);
+        align-items: stretch;
+        margin-bottom: var(--spacing-2xl);
     }
 
-    .feature-card {
-        background: var(--color-bg);
-        border-radius: var(--radius-xl);
+    .index-card {
+        background: rgba(255,255,255,0.92);
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.04);
         padding: var(--spacing-xl);
-        box-shadow: var(--shadow-md);
-        border: 1px solid var(--color-border);
-        transition: all 0.3s ease;
-        text-align: center;
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 260px;
     }
 
-    .feature-card:hover {
+    .index-card:hover {
         transform: translateY(-4px);
         box-shadow: var(--shadow-lg);
+        border-color: rgba(217,119,6,0.25);
     }
 
-    .feature-icon {
-        width: 64px;
-        height: 64px;
-        background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
-        border-radius: var(--radius-xl);
-        display: flex;
+    .index-card .icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 16px;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto var(--spacing-lg);
-        color: white;
-        font-size: 24px;
-        box-shadow: var(--shadow-md);
+        background: rgba(245,158,11,0.14);
+        border: 1px solid rgba(245,158,11,0.22);
+        color: #9a3412;
+        font-size: 18px;
+        margin-bottom: 8px;
     }
 
-    .feature-title {
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--color-text);
-        margin-bottom: var(--spacing-sm);
-    }
-
-    .feature-description {
-        color: var(--color-text-secondary);
-        line-height: 1.6;
+    .index-card h3 {
         margin: 0;
+        font-size: 18px;
+        font-weight: 1000;
+        color: rgba(17,24,39,0.95);
     }
 
-    .stats-section {
-        background: var(--color-bg-secondary);
-        border-radius: var(--radius-xl);
+    .index-card p {
+        margin: 0;
+        color: rgba(17,24,39,0.62);
+        font-weight: 650;
+        line-height: 1.6;
+        font-size: 14px;
+    }
+
+    .index-section-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .index-section-head h2 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 1000;
+        color: rgba(17,24,39,0.95);
+    }
+
+    .index-section-head p {
+        margin: 0;
+        color: rgba(17,24,39,0.62);
+        font-weight: 650;
+        max-width: 560px;
+        line-height: 1.5;
+    }
+
+    .index-stats {
+        background: rgba(255,255,255,0.7);
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: var(--radius-xl, 20px);
         padding: var(--spacing-2xl);
-        margin: var(--spacing-2xl) 0;
-        border: 1px solid var(--color-border);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+        margin-bottom: var(--spacing-2xl);
     }
 
-    .stats-grid {
+    .index-stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: var(--spacing-lg);
     }
 
-    .stat-item {
+    .index-stat-item {
         text-align: center;
         padding: var(--spacing-lg);
-        background: var(--color-bg);
+        background: rgba(255,255,255,0.9);
         border-radius: var(--radius-lg);
-        border: 1px solid var(--color-border);
-        transition: transform 0.2s ease;
+        border: 1px solid rgba(0,0,0,0.05);
     }
 
-    .stat-item:hover {
-        transform: translateY(-2px);
-    }
-
-    .stat-number {
+    .index-stat-item .num {
         font-size: 36px;
-        font-weight: 700;
-        color: var(--color-primary);
-        margin-bottom: var(--spacing-sm);
+        font-weight: 1000;
+        color: rgba(245,158,11,1);
+        margin-bottom: 10px;
         display: block;
     }
 
-    .stat-label {
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--color-text-secondary);
+    .index-stat-item .lbl {
+        font-size: 13px;
+        font-weight: 950;
+        color: rgba(17,24,39,0.62);
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin: 0;
     }
 
-    .cta-section {
-        background: linear-gradient(135deg, var(--color-bg-tertiary) 0%, var(--color-bg) 100%);
-        border-radius: var(--radius-xl);
-        padding: var(--spacing-2xl);
-        text-align: center;
-        margin: var(--spacing-2xl) 0;
-        border: 1px solid var(--color-border);
-    }
-
-    .cta-title {
-        font-size: 24px;
-        font-weight: 600;
-        color: var(--color-text);
-        margin-bottom: var(--spacing-md);
-    }
-
-    .cta-description {
-        font-size: 16px;
-        color: var(--color-text-secondary);
-        margin-bottom: var(--spacing-xl);
-        max-width: 500px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .cta-buttons {
-        display: flex;
-        gap: var(--spacing-md);
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-
-    .btn-secondary {
-        background: var(--color-bg);
-        color: var(--color-text);
-        border: 2px solid var(--color-border);
-        padding: var(--spacing-md) var(--spacing-xl);
-        border-radius: var(--radius-lg);
-        text-decoration: none;
-        font-weight: 500;
-        transition: all 0.2s ease;
-        display: inline-flex;
-        align-items: center;
-        gap: var(--spacing-sm);
-    }
-
-    .btn-secondary:hover {
-        background: var(--color-text);
-        color: var(--color-bg);
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
+    @media (max-width: 900px) {
+        .index-hero-inner { grid-template-columns: 1fr; }
+        .index-stat { margin-left: 0; max-width: 100%; }
     }
 
     @media (max-width: 768px) {
-        .hero-section {
-            padding: var(--spacing-xl) 0;
-            margin: calc(-1 * var(--spacing-md)) calc(-1 * var(--spacing-md)) var(--spacing-xl);
-        }
-
-        .features-grid {
-            grid-template-columns: 1fr;
-            gap: var(--spacing-lg);
-        }
-
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .cta-buttons {
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .btn-secondary {
-            width: 100%;
-            max-width: 300px;
-            justify-content: center;
-        }
+        .index-page { padding: var(--spacing-md); }
+        .index-hero-inner { padding: var(--spacing-xl); }
+        .index-title { font-size: 34px; }
+        .index-stat-item .num { font-size: 30px; }
     }
 </style>
 
-<section class="hero-section">
-    <div class="container">
-        <div class="hero-content">
-            <h1 class="hero-title">Welcome to Pila Pet Registration</h1>
-            <p class="hero-subtitle">
-                Modern pet management for the Pila community. Register, track, and protect your beloved companions with our digital platform.
-            </p>
+<?php
+$db = Database::getInstance();
+$conn = $db->getConnection();
+
+$totalPets = (int)$conn->query("SELECT COUNT(*) as total FROM pets WHERE archived = 0 AND status = 'approved'")->fetch()['total'];
+
+$totalUsers = (int)$conn->query("SELECT COUNT(*) as total FROM users WHERE archived = 0")->fetch()['total'];
+
+$lostPets = (int)$conn->query("SELECT COUNT(*) as total FROM pets WHERE lost = 1 AND archived = 0 AND status = 'approved' AND deceased = 0")->fetch()['total'];
+
+$adoptionPets = (int)$conn->query("SELECT COUNT(*) as total FROM pets WHERE available_for_adoption = 1 AND archived = 0 AND status = 'approved' AND deceased = 0")->fetch()['total'];
+?>
+
+<div class="index-page">
+    <section class="index-hero" aria-label="Index hero">
+        <div class="index-hero-inner">
+            <div>
+                <div class="index-kicker">
+                    <i class="fas fa-paw"></i>
+                    Pila Pet Registration • Lost & Adoption
+                </div>
+
+                <h1 class="index-title">Welcome to Pila Pet</h1>
+                <p class="index-subtitle">
+                    Register, track, and protect your beloved companions — plus help reunite lost pets and find loving homes through adoption.
+                </p>
+
+                <div class="index-hero-actions">
+                    <?php if (!isLoggedIn()): ?>
+                        <a href="register.php" class="btn-primary-cta">
+                            <i class="fas fa-rocket"></i>
+                            Get Started Free
+                        </a>
+                        <a href="login.php" class="btn-secondary-cta">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Login
+                        </a>
+                    <?php else: ?>
+                        <a href="<?php echo isAdmin() ? 'admin/dashboard.php' : 'user/dashboard.php'; ?>" class="btn-primary-cta">
+                            <i class="fas fa-tachometer-alt"></i>
+                            Go to Dashboard
+                        </a>
+                        <a href="lost_pets.php" class="btn-secondary-cta">
+                            <i class="fas fa-search"></i>
+                            Browse Lost Pets
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="index-stat">
+                <div class="label">
+                    <i class="fas fa-users"></i>
+                    Community Snapshot
+                </div>
+                <div class="value"><?php echo $totalUsers; ?></div>
+                <div class="hint">Pet owners currently using the platform</div>
+            </div>
+        </div>
+    </section>
+
+    <div class="index-section-head">
+        <div>
+            <h2>How it helps</h2>
+            <p>Everything you need to keep pets safe, reunite lost pets, and support adoption.</p>
+        </div>
+    </div>
+
+    <div class="index-grid">
+        <div class="index-card">
+            <div class="icon"><i class="fas fa-user-plus"></i></div>
+            <h3>Easy Registration</h3>
+            <p>Register pets with details, photos, and vaccination records.</p>
+        </div>
+
+        <div class="index-card">
+            <div class="icon"><i class="fas fa-search"></i></div>
+            <h3>Lost & Found</h3>
+            <p>Report lost pets and help reunite them with their owners.</p>
+        </div>
+
+        <div class="index-card">
+            <div class="icon"><i class="fas fa-heart"></i></div>
+            <h3>Pet Adoption</h3>
+            <p>Browse available pets and apply to adopt through verified listings.</p>
+        </div>
+    </div>
+
+    <section class="index-stats" aria-label="Index stats">
+        <div class="index-section-head" style="margin-bottom: var(--spacing-lg);">
+            <div>
+                <h2 style="font-size: 28px;">Community Impact</h2>
+                <p>Real numbers from our pet registration system.</p>
+            </div>
+        </div>
+
+        <div class="index-stats-grid">
+            <div class="index-stat-item">
+                <span class="num"><?php echo $totalPets; ?></span>
+                <p class="lbl">Registered Pets</p>
+            </div>
+
+            <div class="index-stat-item">
+                <span class="num"><?php echo $lostPets; ?></span>
+                <p class="lbl">Lost Pets Reported</p>
+            </div>
+
+            <div class="index-stat-item">
+                <span class="num"><?php echo $adoptionPets; ?></span>
+                <p class="lbl">Pets Available for Adoption</p>
+            </div>
+
+            <div class="index-stat-item">
+                <span class="num"><?php echo $totalUsers; ?></span>
+                <p class="lbl">Pet Owners</p>
+            </div>
+        </div>
+    </section>
+
+    <section style="text-align:center; margin-bottom: var(--spacing-2xl);">
+        <h2 style="font-size: 26px; font-weight: 1000; color: rgba(17,24,39,0.95); margin: 0 0 var(--spacing-md);">
+            Ready to get started?
+        </h2>
+        <p style="color: rgba(17,24,39,0.62); font-weight: 650; margin: 0 0 var(--spacing-lg); line-height: 1.6;">
+            Join pet owners in Pila who trust this platform to keep pets safe and connected.
+        </p>
+
+        <div class="index-hero-actions" style="justify-content:center;">
             <?php if (!isLoggedIn()): ?>
-                <a href="register.php" class="hero-cta">
-                    <i class="fas fa-rocket"></i>
-                    Get Started Free
-                </a>
-            <?php else: ?>
-                <a href="<?php echo isAdmin() ? 'admin/dashboard.php' : 'user/dashboard.php'; ?>" class="hero-cta">
-                    <i class="fas fa-tachometer-alt"></i>
-                    Go to Dashboard
-                </a>
-            <?php endif; ?>
-        </div>
-    </div>
-</section>
-
-<section class="features-grid">
-    <div class="feature-card">
-        <div class="feature-icon">
-            <i class="fas fa-user-plus"></i>
-        </div>
-        <h3 class="feature-title">Easy Registration</h3>
-        <p class="feature-description">
-            Register your pets with detailed information, photos, and vaccination records in minutes.
-        </p>
-    </div>
-
-    <div class="feature-card">
-        <div class="feature-icon">
-            <i class="fas fa-search"></i>
-        </div>
-        <h3 class="feature-title">Lost & Found</h3>
-        <p class="feature-description">
-            Report lost pets or help reunite lost pets with their owners through our community platform.
-        </p>
-    </div>
-
-    <div class="feature-card">
-        <div class="feature-icon">
-            <i class="fas fa-heart"></i>
-        </div>
-        <h3 class="feature-title">Pet Adoption</h3>
-        <p class="feature-description">
-            Find loving homes for pets or adopt pets in need through our verified adoption system.
-        </p>
-    </div>
-</section>
-
-<section class="stats-section">
-    <div class="container">
-        <div style="text-align: center; margin-bottom: var(--spacing-xl);">
-            <h2 style="font-size: 28px; font-weight: 600; color: var(--color-text); margin-bottom: var(--spacing-sm);">
-                Community Impact
-            </h2>
-            <p style="color: var(--color-text-secondary); font-size: 16px; margin: 0;">
-                Real numbers from our pet registration system
-            </p>
-        </div>
-
-        <div class="stats-grid">
-            <?php
-            $db = Database::getInstance();
-            $conn = $db->getConnection();
-
-            // Get statistics
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE archived = 0 AND status = 'approved'");
-            $totalPets = $stmt->fetch()['total'];
-
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE lost = 1 AND archived = 0 AND status = 'approved' AND deceased = 0");
-            $lostPets = $stmt->fetch()['total'];
-
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE available_for_adoption = 1 AND archived = 0 AND status = 'approved' AND deceased = 0");
-            $adoptionPets = $stmt->fetch()['total'];
-
-            $stmt = $conn->query("SELECT COUNT(*) as total FROM users WHERE archived = 0");
-            $totalUsers = $stmt->fetch()['total'];
-            ?>
-
-            <div class="stat-item">
-                <span class="stat-number"><?php echo $totalPets; ?></span>
-                <p class="stat-label">Registered Pets</p>
-            </div>
-
-            <div class="stat-item">
-                <span class="stat-number"><?php echo $totalUsers; ?></span>
-                <p class="stat-label">Pet Owners</p>
-            </div>
-
-            <div class="stat-item">
-                <span class="stat-number"><?php echo $lostPets; ?></span>
-                <p class="stat-label">Lost Pets Reported</p>
-            </div>
-
-            <div class="stat-item">
-                <span class="stat-number"><?php echo $adoptionPets; ?></span>
-                <p class="stat-label">Pets Available for Adoption</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="cta-section">
-    <div class="container">
-        <h2 class="cta-title">Ready to Get Started?</h2>
-        <p class="cta-description">
-            Join thousands of pet owners in Pila who trust our platform to keep their pets safe and registered.
-        </p>
-
-        <div class="cta-buttons">
-            <?php if (!isLoggedIn()): ?>
-                <a href="register.php" class="btn-primary" style="text-decoration: none;">
+                <a href="register.php" class="btn-primary-cta">
                     <i class="fas fa-user-plus"></i>
                     Register Your Pet
                 </a>
-                <a href="login.php" class="btn-secondary">
+                <a href="login.php" class="btn-secondary-cta">
                     <i class="fas fa-sign-in-alt"></i>
                     Sign In
                 </a>
             <?php else: ?>
-                <a href="<?php echo isAdmin() ? 'admin/dashboard.php' : 'user/dashboard.php'; ?>" class="btn-primary" style="text-decoration: none;">
+                <a href="<?php echo isAdmin() ? 'admin/dashboard.php' : 'user/dashboard.php'; ?>" class="btn-primary-cta">
                     <i class="fas fa-tachometer-alt"></i>
                     Go to Dashboard
                 </a>
-                <a href="lost_pets.php" class="btn-secondary">
-                    <i class="fas fa-search"></i>
-                    Browse Lost Pets
+                <a href="adoption.php" class="btn-secondary-cta">
+                    <i class="fas fa-heart"></i>
+                    Browse Adoption
                 </a>
             <?php endif; ?>
         </div>
-    </div>
-</section>
+    </section>
+</div>
 
 <?php include 'includes/footer.php'; ?>

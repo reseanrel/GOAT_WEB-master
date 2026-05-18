@@ -615,10 +615,23 @@ try {
         <?php else: ?>
             <?php foreach ($adoptionPets as $pet): ?>
                 <?php
-                    $photo = $pet['photo_path'] ?? ($pet['photo_url'] ?? '');
-                    $photo = is_string($photo) ? $photo : '';
+                    $photoPath = isset($pet['photo_path']) ? (string)$pet['photo_path'] : '';
+                    $photoOk = $photoPath !== '';
 
-                    $photoOk = !empty($photo) && file_exists('../uploads/' . $photo);
+                    // photo_path may be a filename (e.g. pet_1.png) OR a path/fragment (e.g. uploads/pet_1.png or static/uploads/...)
+                    if ($photoOk) {
+                        $photoSrc = $photoPath;
+
+                        if (str_starts_with($photoSrc, 'uploads/')) {
+                            $photoSrc = '../' . $photoSrc;
+                        } elseif (str_starts_with($photoSrc, 'static/uploads/')) {
+                            $photoSrc = '../' . $photoSrc;
+                        } elseif (str_contains($photoSrc, '/uploads/')) {
+                            $photoSrc = '../' . ltrim($photoSrc, './');
+                        } else {
+                            $photoSrc = '../uploads/' . $photoSrc;
+                        }
+                    }
 
                     $category = $pet['category'] ?? 'PET';
                     $petType = $pet['pet_type'] ?? 'Unknown';
@@ -640,7 +653,7 @@ try {
                 <div class="pet-adoption-card">
                     <div class="pet-adoption-media">
                         <?php if ($photoOk): ?>
-                            <img src="../uploads/<?php echo htmlspecialchars($photo); ?>" alt="<?php echo htmlspecialchars($pet['name']); ?>">
+                            <img src="<?php echo htmlspecialchars($photoSrc); ?>" alt="<?php echo htmlspecialchars($pet['name']); ?>">
                         <?php else: ?>
                             <div class="media-fallback"><i class="fas fa-paw"></i></div>
                         <?php endif; ?>

@@ -783,13 +783,32 @@ try {
         <?php else: ?>
             <?php foreach ($lostPets as $pet): ?>
                 <?php
-                    $photoOk = !empty($pet['photo_path']) && file_exists('../uploads/' . $pet['photo_path']);
                     $category = $pet['category'] ?? 'PET';
                     $petType = $pet['pet_type'] ?? 'Unknown';
                     $color = $pet['color'] ?? 'Unknown';
                     $gender = $pet['gender'] ?? 'Unknown';
                     $ageYears = $pet['age'] ? htmlspecialchars($pet['age']) . ' years' : 'Unknown';
                     $registeredOn = !empty($pet['registered_on']) ? date('m/d/Y', strtotime($pet['registered_on'])) : 'Unknown';
+
+                    $photoPath = isset($pet['photo_path']) ? (string)$pet['photo_path'] : '';
+                    $photoOk = $photoPath !== '';
+
+                    // photo_path may be a filename (e.g. pet_1.png) OR a path/fragment (e.g. uploads/pet_1.png or static/uploads/...)
+                    if ($photoOk) {
+                        $photoSrc = $photoPath;
+
+                        if (str_starts_with($photoSrc, 'uploads/')) {
+                            $photoSrc = '../' . $photoSrc;
+                        } elseif (str_starts_with($photoSrc, 'static/uploads/')) {
+                            $photoSrc = '../' . $photoSrc;
+                        } elseif (str_contains($photoSrc, '/uploads/')) {
+                            // already contains an uploads path fragment
+                            $photoSrc = '../' . ltrim($photoSrc, './');
+                        } else {
+                            // assume it is just a filename stored in DB
+                            $photoSrc = '../uploads/' . $photoSrc;
+                        }
+                    }
 
                     $lastSeenLocation = $pet['last_seen_location'] ?? '';
                     $lastSeenLocation = $lastSeenLocation ? $lastSeenLocation : 'Location not provided';
@@ -801,7 +820,7 @@ try {
                 <div class="lost-pet-card">
                     <div class="lost-pet-media">
                         <?php if ($photoOk): ?>
-                            <img src="../uploads/<?php echo htmlspecialchars($pet['photo_path']); ?>" alt="<?php echo htmlspecialchars($pet['name']); ?>">
+                            <img src="<?php echo htmlspecialchars($photoSrc); ?>" alt="<?php echo htmlspecialchars($pet['name']); ?>">
                         <?php else: ?>
                             <div class="media-fallback">
                                 <i class="fas fa-paw"></i>

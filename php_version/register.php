@@ -15,8 +15,18 @@ if (isLoggedIn()) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $firstName = sanitizeInput($_POST['first_name']);
     $lastName = sanitizeInput($_POST['last_name']);
-    $age = !empty($_POST['age']) ? (int)$_POST['age'] : null;
+    $birthDate = trim((string)($_POST['birth_date'] ?? ''));
+    $age = null;
     $contactNumber = sanitizeInput($_POST['contact_number']);
+
+    if ($birthDate !== '') {
+        $dt = DateTime::createFromFormat('Y-m-d', $birthDate);
+        if ($dt !== false) {
+            // Age calculation based on birthday
+            $now = new DateTime('today');
+            $age = (int)$dt->diff($now)->y;
+        }
+    }
     $address = sanitizeInput($_POST['address']);
     $email = sanitizeInput($_POST['email']);
     $password = $_POST['password'];
@@ -24,9 +34,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $errors = [];
 
-    // Validation
     if (empty($firstName) || empty($lastName) || empty($email) || empty($password)) {
         $errors[] = 'Please fill all required fields';
+    }
+
+    if ($birthDate === '') {
+        $errors[] = 'Please select your date of birth';
+    } elseif ($age === null || $age < 1 || $age > 120) {
+        $errors[] = 'Age must be between 1 and 120 (based on date of birth)';
     }
 
     if ($password !== $confirmPassword) {
@@ -49,19 +64,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db = Database::getInstance();
         $conn = $db->getConnection();
 
-        // Check if email already exists
         $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
         $stmt->execute([$email]);
         if ($stmt->fetch()) {
             $errors[] = 'Email already registered';
         } else {
             try {
-                // Generate verification code (6 digits)
                 $verificationCode = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
 
-                // Store registration data temporarily in session
                 $fullName = $firstName . ' ' . $lastName;
-                session_regenerate_id(true); // Regenerate session ID for security
+                session_regenerate_id(true);
                 $_SESSION['pending_registration'] = [
                     'first_name' => $firstName,
                     'last_name' => $lastName,
@@ -72,23 +84,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'email' => $email,
                     'password' => $password,
                     'verification_code' => $verificationCode,
-                    'expires' => time() + 3600 // 1 hour expiry
+                    'expires' => time() + 3600
                 ];
 
-                // Send verification email via Gmail SMTP
                 require_once 'includes/email.php';
                 $emailSent = sendVerificationEmail($email, $verificationCode);
 
                 if ($emailSent) {
                     $_SESSION['success'] = 'Registration successful! Please check your Gmail inbox for the verification code.';
                 } else {
-                    // Gmail SMTP failed - show file-based fallback
                     $_SESSION['show_verification'] = true;
                     $_SESSION['success'] = 'Registration successful! Please check the saved email file for your verification code.';
                     error_log("[WARNING] Gmail SMTP failed, falling back to file storage");
                 }
 
-                // Redirect to verification page
                 header('Location: verify_email.php');
                 exit();
 
@@ -107,348 +116,473 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php include 'includes/header.php'; ?>
 
 <style>
-    .auth-container {
-        min-height: calc(100vh - 200px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: var(--spacing-2xl) var(--spacing-md);
+    /* Register - warm modern rescue UI */
+    .auth-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: var(--spacing-lg);
     }
 
-    .auth-card {
-        background: var(--color-bg);
-        border-radius: var(--radius-xl);
-        box-shadow: var(--shadow-lg);
-        border: 1px solid var(--color-border);
-        width: 100%;
-        max-width: 500px;
+    .auth-hero {
+        position: relative;
+        border-radius: var(--radius-xl, 20px);
         overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: var(--shadow-lg);
+        background: #fff7ed;
+        margin-bottom: var(--spacing-2xl);
     }
 
-    .auth-header {
-        background: linear-gradient(135deg, var(--color-success) 0%, var(--color-primary) 100%);
-        padding: var(--spacing-2xl) var(--spacing-xl);
-        text-align: center;
-        color: white;
+    .auth-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 15% 20%, rgba(245,158,11,0.35) 0%, rgba(245,158,11,0) 45%),
+            radial-gradient(circle at 80% 30%, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0) 45%),
+            radial-gradient(circle at 60% 90%, rgba(37,99,235,0.12) 0%, rgba(37,99,235,0) 55%),
+            linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.35));
+        pointer-events: none;
+        opacity: 0.95;
     }
 
-    .auth-header i {
-        font-size: 48px;
+    .auth-hero-inner {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: var(--spacing-xl);
+        padding: var(--spacing-2xl);
+        align-items: center;
+    }
+
+    .auth-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: 8px 12px;
+        border-radius: var(--radius-lg, 16px);
+        background: rgba(245,158,11,0.16);
+        border: 1px solid rgba(245,158,11,0.25);
+        width: fit-content;
+        font-weight: 900;
+        color: #9a3412;
         margin-bottom: var(--spacing-md);
-        opacity: 0.9;
     }
 
-    .auth-header h1 {
-        font-size: 24px;
-        font-weight: 600;
-        margin: 0;
+    .auth-title {
+        font-size: 44px;
+        line-height: 1.05;
+        font-weight: 900;
+        color: rgba(17,24,39,0.95);
+        margin: 0 0 var(--spacing-md);
         letter-spacing: -0.5px;
     }
 
-    .auth-body {
-        padding: var(--spacing-2xl);
+    .auth-subtitle {
+        margin: 0 0 var(--spacing-lg);
+        color: rgba(17,24,39,0.72);
+        font-size: 16px;
+        max-width: 620px;
+        font-weight: 650;
+        line-height: 1.6;
     }
 
-    .form-row {
+    .auth-card {
+        background: rgba(255,255,255,0.92);
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+        padding: var(--spacing-xl);
+    }
+
+    .auth-form-title {
+        margin: 0 0 var(--spacing-lg);
+        font-size: 22px;
+        font-weight: 1000;
+        color: rgba(17,24,39,0.95);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .grid-2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: var(--spacing-lg);
-        margin-bottom: var(--spacing-lg);
     }
 
-    .form-group {
-        margin-bottom: var(--spacing-lg);
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: var(--spacing-md);
     }
 
-    .form-group.full-width {
-        margin-bottom: var(--spacing-lg);
+    label.field-label {
+        font-weight: 900;
+        font-size: 13px;
+        color: rgba(17,24,39,0.72);
     }
 
-    .form-label {
-        display: block;
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--color-text);
-        margin-bottom: var(--spacing-sm);
-        letter-spacing: 0.2px;
-    }
-
-    .form-input, .form-textarea {
+    input.field-input, textarea.field-input {
         width: 100%;
-        padding: var(--spacing-md) var(--spacing-lg);
-        border: 2px solid var(--color-border);
-        border-radius: var(--radius-lg);
-        font-size: 16px;
-        font-family: var(--font-family);
-        background: var(--color-bg);
-        color: var(--color-text);
-        transition: all 0.2s ease;
+        padding: 12px 12px;
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        background: #fff;
+        font-family: inherit;
+        font-size: 14px;
         outline: none;
     }
 
-    .form-textarea {
-        resize: vertical;
-        min-height: 80px;
-    }
+    textarea.field-input { min-height: 80px; resize: vertical; }
 
-    .form-input:focus, .form-textarea:focus {
+    input.field-input:focus, textarea.field-input:focus {
         border-color: var(--color-primary);
-        box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+        box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
     }
 
-    .form-input::placeholder, .form-textarea::placeholder {
-        color: var(--color-text-muted);
-    }
-
-    .form-hint {
-        font-size: 12px;
-        color: var(--color-text-secondary);
-        margin-top: var(--spacing-xs);
-        display: block;
+    .form-actions {
+        display: flex;
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-lg);
+        align-items: center;
     }
 
     .btn-primary {
-        width: 100%;
-        padding: var(--spacing-md) var(--spacing-lg);
+        border: none;
         background: var(--color-primary);
         color: white;
-        border: none;
-        border-radius: var(--radius-lg);
-        font-size: 16px;
-        font-weight: 500;
-        font-family: var(--font-family);
+        border-radius: var(--radius-lg, 18px);
+        padding: 13px 16px;
+        font-size: 15px;
+        font-weight: 1000;
         cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: var(--spacing-sm);
+        gap: 10px;
+        transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+        flex: 1;
     }
 
     .btn-primary:hover {
-        background: var(--color-primary-hover);
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+        box-shadow: 0 14px 28px rgba(26,115,232,0.18);
+        filter: saturate(1.05);
     }
 
     .auth-links {
-        text-align: center;
-        margin-top: var(--spacing-xl);
-        padding-top: var(--spacing-xl);
+        margin-top: var(--spacing-lg);
+        padding-top: var(--spacing-lg);
         border-top: 1px solid var(--color-border);
-    }
-
-    .auth-links p {
-        margin: 0 0 var(--spacing-md);
-        color: var(--color-text-secondary);
-        font-size: 14px;
+        text-align: center;
+        color: rgba(17,24,39,0.62);
+        font-weight: 650;
     }
 
     .auth-links a {
         color: var(--color-primary);
         text-decoration: none;
-        font-weight: 500;
-        transition: color 0.2s ease;
+        font-weight: 900;
     }
 
     .auth-links a:hover {
-        color: var(--color-primary-hover);
         text-decoration: underline;
     }
 
     .verification-notice {
-        background: linear-gradient(135deg, var(--color-success), rgba(52, 168, 83, 0.1));
-        border: 1px solid rgba(52, 168, 83, 0.3);
-        border-radius: var(--radius-lg);
+        margin-top: var(--spacing-lg);
+        background: rgba(255,255,255,0.75);
+        border: 1px dashed rgba(245,158,11,0.35);
+        border-radius: var(--radius-xl, 20px);
         padding: var(--spacing-lg);
-        margin-top: var(--spacing-xl);
         text-align: center;
     }
 
     .verification-notice h5 {
-        color: var(--color-success);
         margin: 0 0 var(--spacing-sm);
+        color: rgba(17,24,39,0.95);
         font-size: 16px;
-        font-weight: 600;
+        font-weight: 1000;
     }
 
     .verification-notice p {
-        color: var(--color-text);
         margin: 0 0 var(--spacing-md);
+        color: rgba(17,24,39,0.72);
+        font-weight: 650;
+        line-height: 1.5;
         font-size: 14px;
     }
 
     .verification-code {
-        background: var(--color-bg-tertiary);
-        border: 2px dashed var(--color-success);
-        border-radius: var(--radius-md);
+        background: rgba(255,255,255,0.9);
+        border: 2px dashed rgba(245,158,11,0.5);
+        border-radius: var(--radius-lg, 16px);
         padding: var(--spacing-md);
-        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-family: 'Monaco','Menlo','Ubuntu Mono',monospace;
         font-size: 18px;
-        font-weight: 600;
-        color: var(--color-success);
+        font-weight: 1000;
+        color: rgba(154,52,18,1);
         letter-spacing: 2px;
-        margin: var(--spacing-md) 0;
         display: inline-block;
     }
 
-    @media (max-width: 640px) {
-        .auth-container {
-            padding: var(--spacing-xl) var(--spacing-md);
-        }
-
-        .auth-card {
-            max-width: 100%;
-        }
-
-        .auth-header {
-            padding: var(--spacing-xl);
-        }
-
-        .auth-body {
-            padding: var(--spacing-xl);
-        }
-
-        .form-row {
-            grid-template-columns: 1fr;
-            gap: var(--spacing-md);
-        }
+    @media (max-width: 900px) {
+        .auth-hero-inner { grid-template-columns: 1fr; }
+        .grid-2 { grid-template-columns: 1fr; }
     }
 </style>
 
-<div class="auth-container">
-    <div class="auth-card">
-        <div class="auth-header">
-            <i class="fas fa-user-plus"></i>
-            <h1>Join Pila Pet Community</h1>
+<div class="auth-page">
+    <section class="auth-hero" aria-label="Register hero">
+        <div class="auth-hero-inner">
+            <div>
+                <div class="auth-kicker">
+                    <i class="fas fa-paw"></i>
+                    Join Pila Pet Community
+                </div>
+
+                <h1 class="auth-title">Create Your Account</h1>
+                <p class="auth-subtitle">
+                    Register your details so you can manage pets, report lost animals, and track adoption applications.
+                </p>
+            </div>
+
+            <div class="auth-card">
+                <h2 class="auth-form-title">
+                    <i class="fas fa-user-plus"></i>
+                    Register
+                </h2>
+
+                <form method="POST">
+                    <div class="grid-2">
+                        <div class="field">
+                            <label class="field-label" for="first_name">First Name *</label>
+                            <input class="field-input" type="text" id="first_name" name="first_name"
+                                   placeholder="Enter your first name" required
+                                   value="<?php echo isset($_POST['first_name']) ? htmlspecialchars((string)$_POST['first_name']) : ''; ?>">
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label" for="last_name">Last Name *</label>
+                            <input class="field-input" type="text" id="last_name" name="last_name"
+                                   placeholder="Enter your last name" required
+                                   value="<?php echo isset($_POST['last_name']) ? htmlspecialchars((string)$_POST['last_name']) : ''; ?>">
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="field">
+                            <label class="field-label" for="birth_date">Date of Birth *</label>
+                            <input
+                                class="field-input"
+                                type="date"
+                                id="birth_date"
+                                name="birth_date"
+                                required
+                                value="<?php echo isset($_POST['birth_date']) ? htmlspecialchars((string)$_POST['birth_date']) : ''; ?>"
+                            >
+                            <div class="field-note" style="font-size:12px;color:rgba(17,24,39,0.6);font-weight:650;">
+                                Age will be calculated automatically.
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label" for="contact_number">Contact Number</label>
+                            <input class="field-input" type="text" id="contact_number" name="contact_number"
+                                   placeholder="11-digit number"
+                                   value="<?php echo isset($_POST['contact_number']) ? htmlspecialchars((string)$_POST['contact_number']) : ''; ?>">
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="field-label" for="province">Address</label>
+
+                        <input type="hidden" name="address" id="address" value="<?php echo htmlspecialchars(isset($_POST['address']) ? (string)$_POST['address'] : ''); ?>" />
+
+                        <select class="field-input" id="province" name="province" style="cursor:pointer;">
+                            <option value="">Select Province</option>
+                        </select>
+
+                        <select class="field-input" id="city" name="city" style="cursor:pointer; margin-top:10px;" disabled>
+                            <option value="">Select City/Municipality</option>
+                        </select>
+
+                        <select class="field-input" id="barangay" name="barangay" style="cursor:pointer; margin-top:10px;" disabled>
+                            <option value="">Select Barangay</option>
+                        </select>
+
+                        <div class="field-note" style="font-size:12px;color:rgba(17,24,39,0.6);font-weight:650;">
+                            Province, city, and barangay will be combined into your full address.
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="field-label" for="email">Email Address *</label>
+                        <input class="field-input" type="email" id="email" name="email"
+                               placeholder="Enter your email address" required
+                               value="<?php echo isset($_POST['email']) ? htmlspecialchars((string)$_POST['email']) : ''; ?>">
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="field">
+                            <label class="field-label" for="password">Password *</label>
+                            <input class="field-input" type="password" id="password" name="password"
+                                   placeholder="Create a password" required>
+                            <div class="field-note" style="font-size:12px;color:rgba(17,24,39,0.6);font-weight:650;">
+                                Min 8 chars + 1 symbol required
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field-label" for="confirm_password">Confirm Password *</label>
+                            <input class="field-input" type="password" id="confirm_password" name="confirm_password"
+                                   placeholder="Confirm your password" required>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-rocket"></i>
+                            Create Account
+                        </button>
+                    </div>
+                </form>
+
+                <div class="auth-links">
+                    Already have an account?
+                    <div style="margin-top:8px;">
+                        <a href="login.php">Sign in instead</a>
+                    </div>
+                </div>
+
+                <?php if (isset($_SESSION['show_verification'])): ?>
+                    <div class="verification-notice">
+                        <h5><i class="fas fa-envelope"></i> Verification Required</h5>
+                        <p>Email service is currently unavailable. For testing purposes, use this verification code:</p>
+                        <div class="verification-code"><?php echo htmlspecialchars((string)$_SESSION['pending_registration']['verification_code']); ?></div>
+                        <a href="verify_email.php" class="btn-primary" style="margin-top: var(--spacing-md); width:auto; display:inline-flex;">
+                            <i class="fas fa-check-circle"></i>
+                            Continue to Verification
+                        </a>
+                    </div>
+                    <?php unset($_SESSION['show_verification']); ?>
+                <?php endif; ?>
+
+                <?php if (isset($_SESSION['pending_registration']) && !empty($_SESSION['pending_registration']) && !empty($_SESSION['pending_registration']['verification_code']) && empty($_SESSION['show_verification'])): ?>
+                    <div class="verification-notice">
+                        <h5><i class="fas fa-check-circle"></i> Registration Submitted!</h5>
+                        <p>Please check your email for the verification code to complete your registration.</p>
+                        <a href="verify_email.php" class="btn-primary" style="margin-top: var(--spacing-md); width:auto; display:inline-flex;">
+                            <i class="fas fa-key"></i>
+                            Enter Verification Code
+                        </a>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
-
-        <div class="auth-body">
-            <form method="POST">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="first_name" class="form-label">First Name *</label>
-                        <input type="text" class="form-input" id="first_name" name="first_name"
-                               placeholder="Enter your first name" required
-                               value="<?php echo isset($_POST['first_name']) ? htmlspecialchars($_POST['first_name']) : ''; ?>">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="last_name" class="form-label">Last Name *</label>
-                        <input type="text" class="form-input" id="last_name" name="last_name"
-                               placeholder="Enter your last name" required
-                               value="<?php echo isset($_POST['last_name']) ? htmlspecialchars($_POST['last_name']) : ''; ?>">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="age" class="form-label">Age</label>
-                        <input type="number" class="form-input" id="age" name="age" min="0" max="120"
-                               placeholder="Your age (optional)"
-                               value="<?php echo isset($_POST['age']) ? htmlspecialchars($_POST['age']) : ''; ?>">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="contact_number" class="form-label">Contact Number</label>
-                        <input type="text" class="form-input" id="contact_number" name="contact_number"
-                               placeholder="11-digit number"
-                               value="<?php echo isset($_POST['contact_number']) ? htmlspecialchars($_POST['contact_number']) : ''; ?>">
-                    </div>
-                </div>
-
-                <div class="form-group full-width">
-                    <label for="address" class="form-label">Address</label>
-                    <textarea class="form-textarea" id="address" name="address" rows="2"
-                              placeholder="Your complete address"><?php echo isset($_POST['address']) ? htmlspecialchars($_POST['address']) : ''; ?></textarea>
-                </div>
-
-                <div class="form-group full-width">
-                    <label for="email" class="form-label">Email Address *</label>
-                    <input type="email" class="form-input" id="email" name="email"
-                           placeholder="Enter your email address" required
-                           value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="password" class="form-label">Password *</label>
-                        <input type="password" class="form-input" id="password" name="password"
-                               placeholder="Create a password" required>
-                        <span class="form-hint">Min 8 chars, 1 symbol required</span>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="confirm_password" class="form-label">Confirm Password *</label>
-                        <input type="password" class="form-input" id="confirm_password" name="confirm_password"
-                               placeholder="Confirm your password" required>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-primary">
-                    <i class="fas fa-rocket"></i>
-                    Create Account
-                </button>
-            </form>
-
-            <div class="auth-links">
-                <p>Already have an account?</p>
-                <a href="login.php">Sign in instead</a>
-            </div>
-
-            <?php if (isset($_SESSION['show_verification'])): ?>
-            <div class="verification-notice">
-                <h5><i class="fas fa-envelope"></i> Verification Required</h5>
-                <p>Email service is currently unavailable. For testing purposes, use this verification code:</p>
-                <div class="verification-code"><?php echo $_SESSION['pending_registration']['verification_code']; ?></div>
-                <a href="verify_email.php" class="btn-primary" style="margin-top: var(--spacing-md); width: auto; padding: var(--spacing-sm) var(--spacing-lg); font-size: 14px;">
-                    Continue to Verification
-                </a>
-            </div>
-            <?php endif; ?>
-
-            <?php if (isset($_SESSION['pending_registration']) && !isset($_SESSION['show_verification'])): ?>
-            <div class="verification-notice">
-                <h5><i class="fas fa-check-circle"></i> Registration Submitted!</h5>
-                <p>Please check your email for the verification code to complete your registration.</p>
-                <a href="verify_email.php" class="btn-primary" style="margin-top: var(--spacing-md); width: auto; padding: var(--spacing-sm) var(--spacing-lg); font-size: 14px;">
-                    Enter Verification Code
-                </a>
-            </div>
-            <?php endif; ?>
-        </div>
-    </div>
+    </section>
 </div>
 
 <script>
-    // Password confirmation validation
-    const password = document.getElementById('password');
-    const confirmPassword = document.getElementById('confirm_password');
-    const submitBtn = document.querySelector('.btn-primary');
+    // Simple dropdown hierarchy for UI (demo data - replace with real LGU dataset if needed)
+    const data = {
+        "Laguna": {
+            "Pila": [
+                "Aplaya",
+                "Bagong Pook",
+                "Bukal",
+                "Bulilan Norte (Poblacion)",
+                "Bulilan Sur (Poblacion)",
+                "Concepcion",
+                "Labuin",
+                "Linga",
+                "Masico",
+                "Mojon",
+                "Pansol",
+                "Pinagbayanan",
+                "San Antonio",
+                "San Miguel",
+                "Santa Clara Norte (Poblacion)",
+                "Santa Clara Sur (Poblacion)",
+                "Tubuan"
+            ]
+        }
+    };
 
-    function validatePasswords() {
-        if (password.value && confirmPassword.value) {
-            if (password.value !== confirmPassword.value) {
-                confirmPassword.style.borderColor = 'var(--color-error)';
-                confirmPassword.style.boxShadow = '0 0 0 3px rgba(234, 67, 53, 0.1)';
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Passwords do not match';
-                submitBtn.style.background = 'var(--color-error)';
-            } else {
-                confirmPassword.style.borderColor = 'var(--color-success)';
-                confirmPassword.style.boxShadow = '0 0 0 3px rgba(52, 168, 83, 0.1)';
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-rocket"></i> Create Account';
-                submitBtn.style.background = 'var(--color-primary)';
-            }
+    const provinceSelect = document.getElementById('province');
+    const citySelect = document.getElementById('city');
+    const barangaySelect = document.getElementById('barangay');
+    const addressInput = document.getElementById('address');
+
+    function setAddress() {
+        const province = provinceSelect.value;
+        const city = citySelect.value;
+        const barangay = barangaySelect.value;
+
+        if (province && city && barangay) {
+            addressInput.value = `${barangay}, ${city}, ${province}`;
+        } else {
+            addressInput.value = '';
         }
     }
 
-    password.addEventListener('input', validatePasswords);
-    confirmPassword.addEventListener('input', validatePasswords);
+    // Populate provinces
+    if (provinceSelect) {
+        Object.keys(data).forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.textContent = p;
+            provinceSelect.appendChild(opt);
+        });
+    }
 
-    // Auto-focus first input
-    document.getElementById('first_name').focus();
+    provinceSelect?.addEventListener('change', () => {
+        citySelect.disabled = !provinceSelect.value;
+        barangaySelect.disabled = true;
+
+        citySelect.innerHTML = '<option value="">Select City/Municipality</option>';
+        barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
+
+        if (!provinceSelect.value) {
+            setAddress();
+            return;
+        }
+
+        Object.keys(data[provinceSelect.value] || {}).forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            citySelect.appendChild(opt);
+        });
+
+        setAddress();
+    });
+
+    citySelect?.addEventListener('change', () => {
+        barangaySelect.disabled = !citySelect.value;
+
+        barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
+
+        const province = provinceSelect.value;
+        const city = citySelect.value;
+
+        const barangays = (data[province] && data[province][city]) ? data[province][city] : [];
+        barangays.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b;
+            opt.textContent = b;
+            barangaySelect.appendChild(opt);
+        });
+
+        setAddress();
+    });
+
+    barangaySelect?.addEventListener('change', setAddress);
+
+    // Initial address value if hidden input already has data
+    setAddress();
 </script>
 
 <?php include 'includes/footer.php'; ?>

@@ -27,11 +27,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password'])) {
-            // Check if user is archived
-            if ($user['archived']) {
+            if (!empty($user['archived'])) {
                 $_SESSION['error'] = 'This account has been archived and cannot be used to login. Please contact administration.';
             } else {
-                // Set session variables
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['is_admin'] = $user['is_admin'];
                 $_SESSION['user_name'] = $user['full_name'];
@@ -42,8 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $_SESSION['success'] = 'Welcome back, ' . ($user['is_admin'] ? 'Administrator' : $user['full_name']);
 
-                // Redirect based on user type
-                if ($user['is_admin']) {
+                if (!empty($user['is_admin'])) {
                     header('Location: admin/dashboard.php');
                 } else {
                     header('Location: user/dashboard.php');
@@ -60,149 +57,209 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php include 'includes/header.php'; ?>
 
 <style>
-    .auth-container {
-        min-height: calc(100vh - 200px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: var(--spacing-2xl) var(--spacing-md);
+    /* Login - warm modern rescue UI */
+    .auth-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: var(--spacing-lg);
     }
 
-    .auth-card {
-        background: var(--color-bg);
-        border-radius: var(--radius-xl);
-        box-shadow: var(--shadow-lg);
-        border: 1px solid var(--color-border);
-        width: 100%;
-        max-width: 420px;
+    .auth-hero {
+        position: relative;
+        border-radius: var(--radius-xl, 20px);
         overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: var(--shadow-lg);
+        background: #fff7ed;
+        margin-bottom: var(--spacing-2xl);
     }
 
-    .auth-header {
-        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
-        padding: var(--spacing-2xl) var(--spacing-xl);
-        text-align: center;
-        color: white;
+    .auth-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 15% 20%, rgba(245,158,11,0.35) 0%, rgba(245,158,11,0) 45%),
+            radial-gradient(circle at 80% 30%, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0) 45%),
+            radial-gradient(circle at 60% 90%, rgba(37,99,235,0.12) 0%, rgba(37,99,235,0) 55%),
+            linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.35));
+        pointer-events: none;
     }
 
-    .auth-header i {
-        font-size: 48px;
+    .auth-hero-inner {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: var(--spacing-xl);
+        padding: var(--spacing-2xl);
+        align-items: center;
+    }
+
+    .auth-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        padding: 8px 12px;
+        border-radius: var(--radius-lg, 16px);
+        background: rgba(245,158,11,0.16);
+        border: 1px solid rgba(245,158,11,0.25);
+        width: fit-content;
+        font-weight: 900;
+        color: #9a3412;
         margin-bottom: var(--spacing-md);
-        opacity: 0.9;
     }
 
-    .auth-header h1 {
-        font-size: 24px;
-        font-weight: 600;
-        margin: 0;
+    .auth-title {
+        font-size: 44px;
+        line-height: 1.05;
+        font-weight: 900;
+        color: rgba(17,24,39,0.95);
+        margin: 0 0 var(--spacing-md);
         letter-spacing: -0.5px;
     }
 
-    .auth-body {
-        padding: var(--spacing-2xl);
-    }
-
-    .form-group {
-        margin-bottom: var(--spacing-lg);
-    }
-
-    .form-label {
-        display: block;
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--color-text);
-        margin-bottom: var(--spacing-sm);
-        letter-spacing: 0.2px;
-    }
-
-    .form-input {
-        width: 100%;
-        padding: var(--spacing-md) var(--spacing-lg);
-        border: 2px solid var(--color-border);
-        border-radius: var(--radius-lg);
+    .auth-subtitle {
+        margin: 0 0 var(--spacing-lg);
+        color: rgba(17,24,39,0.72);
         font-size: 16px;
-        font-family: var(--font-family);
-        background: var(--color-bg);
-        color: var(--color-text);
-        transition: all 0.2s ease;
+        max-width: 620px;
+        font-weight: 650;
+        line-height: 1.6;
+    }
+
+    .auth-card {
+        background: rgba(255,255,255,0.92);
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: var(--radius-xl, 20px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+        padding: var(--spacing-xl);
+    }
+
+    .auth-form-title {
+        margin: 0 0 var(--spacing-lg);
+        font-size: 22px;
+        font-weight: 1000;
+        color: rgba(17,24,39,0.95);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: var(--spacing-md);
+    }
+
+    label.field-label {
+        font-weight: 900;
+        font-size: 13px;
+        color: rgba(17,24,39,0.72);
+    }
+
+    input.field-input {
+        width: 100%;
+        padding: 12px 12px;
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        background: #fff;
+        font-family: inherit;
+        font-size: 14px;
         outline: none;
     }
 
-    .form-input:focus {
+    input.field-input:focus {
         border-color: var(--color-primary);
-        box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+        box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.12);
     }
 
-    .form-input::placeholder {
-        color: var(--color-text-muted);
+    .auth-actions {
+        display: flex;
+        gap: var(--spacing-md);
+        margin-top: var(--spacing-lg);
+        align-items: center;
     }
 
     .btn-primary {
-        width: 100%;
-        padding: var(--spacing-md) var(--spacing-lg);
+        border: none;
         background: var(--color-primary);
         color: white;
-        border: none;
-        border-radius: var(--radius-lg);
-        font-size: 16px;
-        font-weight: 500;
-        font-family: var(--font-family);
+        border-radius: var(--radius-lg, 18px);
+        padding: 13px 16px;
+        font-size: 15px;
+        font-weight: 1000;
         cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: var(--spacing-sm);
+        gap: 10px;
+        transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+        flex: 1;
     }
 
     .btn-primary:hover {
-        background: var(--color-primary-hover);
-        transform: translateY(-1px);
+        transform: translateY(-2px);
+        box-shadow: 0 14px 28px rgba(26,115,232,0.18);
+        filter: saturate(1.05);
+    }
+
+    .btn-secondary-cta {
+        background: rgba(255,255,255,0.7);
+        border: 1px solid rgba(0,0,0,0.08);
+        color: rgba(17,24,39,0.88);
+        border-radius: var(--radius-lg, 18px);
+        padding: 13px 16px;
+        font-size: 15px;
+        font-weight: 1000;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+        flex: 1;
+    }
+
+    .btn-secondary-cta:hover {
+        transform: translateY(-2px);
+        background: rgba(255,255,255,0.92);
         box-shadow: var(--shadow-md);
     }
 
-    .btn-primary:active {
-        transform: translateY(0);
-    }
-
     .auth-links {
-        text-align: center;
-        margin-top: var(--spacing-xl);
-        padding-top: var(--spacing-xl);
+        margin-top: var(--spacing-lg);
+        padding-top: var(--spacing-lg);
         border-top: 1px solid var(--color-border);
-    }
-
-    .auth-links p {
-        margin: 0 0 var(--spacing-md);
-        color: var(--color-text-secondary);
-        font-size: 14px;
+        text-align: center;
+        color: rgba(17,24,39,0.62);
+        font-weight: 650;
     }
 
     .auth-links a {
         color: var(--color-primary);
         text-decoration: none;
-        font-weight: 500;
-        transition: color 0.2s ease;
+        font-weight: 900;
     }
-
     .auth-links a:hover {
-        color: var(--color-primary-hover);
         text-decoration: underline;
     }
 
     .demo-info {
-        background: var(--color-bg-tertiary);
-        border-radius: var(--radius-md);
-        padding: var(--spacing-md);
         margin-top: var(--spacing-lg);
-        border: 1px solid var(--color-border);
+        background: rgba(255,255,255,0.75);
+        border: 1px dashed rgba(245,158,11,0.35);
+        border-radius: var(--radius-xl, 20px);
+        padding: var(--spacing-lg);
+        text-align: center;
     }
 
     .demo-info h6 {
         margin: 0 0 var(--spacing-sm);
         font-size: 12px;
-        font-weight: 600;
-        color: var(--color-text-secondary);
+        font-weight: 950;
+        color: rgba(17,24,39,0.62);
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
@@ -210,84 +267,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .demo-info p {
         margin: 0;
         font-size: 14px;
-        color: var(--color-text);
-        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        color: rgba(17,24,39,0.88);
+        font-weight: 800;
+        font-family: 'Monaco','Menlo','Ubuntu Mono',monospace;
     }
 
-    @media (max-width: 480px) {
-        .auth-container {
-            padding: var(--spacing-xl) var(--spacing-md);
-        }
-
-        .auth-card {
-            max-width: 100%;
-        }
-
-        .auth-header {
-            padding: var(--spacing-xl);
-        }
-
-        .auth-body {
-            padding: var(--spacing-xl);
-        }
+    @media (max-width: 900px) {
+        .auth-hero-inner { grid-template-columns: 1fr; }
     }
 </style>
 
-<div class="auth-container">
-    <div class="auth-card">
-        <div class="auth-header">
-            <i class="fas fa-sign-in-alt"></i>
-            <h1>Welcome Back</h1>
-        </div>
-
-        <div class="auth-body">
-            <form method="POST">
-                <div class="form-group">
-                    <label for="email" class="form-label">Email Address</label>
-                    <input type="email" class="form-input" id="email" name="email"
-                           placeholder="Enter your email" required
-                           value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
+<div class="auth-page">
+    <section class="auth-hero" aria-label="Login hero">
+        <div class="auth-hero-inner">
+            <div>
+                <div class="auth-kicker">
+                    <i class="fas fa-paw"></i>
+                    Welcome back to Pila Pet
                 </div>
 
-                <div class="form-group">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-input" id="password" name="password"
-                           placeholder="Enter your password" required>
-                </div>
+                <h1 class="auth-title">Sign In</h1>
+                <p class="auth-subtitle">
+                    Log in to manage your pets, report lost animals, and track adoption applications.
+                </p>
+            </div>
 
-                <button type="submit" class="btn-primary">
+            <div class="auth-card">
+                <h2 class="auth-form-title">
                     <i class="fas fa-sign-in-alt"></i>
-                    Sign In
-                </button>
-            </form>
+                    Login
+                </h2>
 
-            <div class="auth-links">
-                <p>New to Pila Pet Registration?</p>
-                <a href="register.php">Create an account</a>
-            </div>
+                <form method="POST">
+                    <div class="field">
+                        <label class="field-label" for="email">Email Address</label>
+                        <input
+                            class="field-input"
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="Enter your email"
+                            required
+                            value="<?php echo isset($_POST['email']) ? htmlspecialchars((string)$_POST['email']) : ''; ?>"
+                        />
+                    </div>
 
-            <div class="demo-info">
-                <h6>Demo Account</h6>
-                <p>admin@pila.pets / admin123!</p>
+                    <div class="field">
+                        <label class="field-label" for="password">Password</label>
+                        <input
+                            class="field-input"
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            required
+                        />
+                    </div>
+
+                    <div class="auth-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Sign In
+                        </button>
+                    </div>
+                </form>
+
+                <div class="auth-links">
+                    New to Pila Pet Registration?
+                    <div style="margin-top:8px;">
+                        <a href="register.php">Create an account</a>
+                    </div>
+                </div>
+
+                <div class="demo-info">
+                    <h6>Demo Account</h6>
+                    <p>admin@pila.pets / admin123!</p>
+                </div>
             </div>
         </div>
-    </div>
+    </section>
 </div>
-
-<script>
-    // Add focus effects
-    document.querySelectorAll('.form-input').forEach(input => {
-        input.addEventListener('focus', function() {
-            this.parentElement.style.transform = 'translateY(-1px)';
-        });
-
-        input.addEventListener('blur', function() {
-            this.parentElement.style.transform = 'translateY(0)';
-        });
-    });
-
-    // Auto-focus first input
-    document.getElementById('email').focus();
-</script>
 
 <?php include 'includes/footer.php'; ?>

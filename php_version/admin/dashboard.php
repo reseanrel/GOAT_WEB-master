@@ -192,24 +192,48 @@ try {
     }
 
     .dashboard-welcome {
-        background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
-        color: white;
-        padding: var(--spacing-2xl);
+        position: relative;
+        background: #fff7ed;
+        border: 1px solid rgba(0,0,0,0.06);
         border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-lg);
+        padding: var(--spacing-2xl);
         margin-bottom: var(--spacing-2xl);
         text-align: center;
+        overflow: hidden;
+    }
+
+    .dashboard-welcome::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 15% 20%, rgba(245,158,11,0.35) 0%, rgba(245,158,11,0) 45%),
+            radial-gradient(circle at 80% 30%, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0) 45%),
+            radial-gradient(circle at 60% 90%, rgba(37,99,235,0.12) 0%, rgba(37,99,235,0) 55%),
+            linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.35));
+        pointer-events: none;
+        opacity: 0.95;
+    }
+
+    .dashboard-welcome > div {
+        position: relative;
+        z-index: 1;
+        color: rgba(17,24,39,0.95);
     }
 
     .welcome-title {
         font-size: 32px;
-        font-weight: 700;
+        font-weight: 1000;
         margin-bottom: var(--spacing-sm);
     }
 
     .welcome-subtitle {
         font-size: 18px;
-        opacity: 0.9;
+        opacity: 0.85;
         margin: 0;
+        color: rgba(17,24,39,0.72);
+        font-weight: 650;
     }
 
     .admin-stats {
@@ -609,12 +633,25 @@ try {
     }
 
     .chart-container {
-        background: var(--color-bg);
+        background: rgba(255,255,255,0.92);
         border-radius: var(--radius-xl);
         padding: var(--spacing-xl);
-        box-shadow: var(--shadow-md);
-        border: 1px solid var(--color-border);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.06);
         margin-bottom: 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .chart-container::before{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: #f59e0b;
+        opacity: 0.55;
     }
 
     .chart-header {
@@ -645,6 +682,7 @@ try {
         padding: var(--spacing-xl);
         box-shadow: var(--shadow-md);
         border: 1px solid var(--color-border);
+        margin-bottom: var(--spacing-lg);
     }
 
     .category-item {
@@ -696,6 +734,7 @@ try {
         box-shadow: var(--shadow-md);
         border: 1px solid var(--color-border);
         overflow: hidden;
+        margin-top: var(--spacing-lg);
     }
 
     .activity-item {
@@ -918,12 +957,15 @@ try {
 
             <!-- Category Breakdown & Activities -->
             <div>
-                <div class="category-breakdown">
+                    <div class="category-breakdown">
                     <div class="panel-header" style="padding: 0 0 var(--spacing-lg) 0; border: none;">
-                        <h3 class="panel-title" style="font-size: 18px;">
+                        <h3 class="panel-title" style="font-size: 18px; margin-bottom: 6px;">
                             <i class="fas fa-chart-pie"></i>
                             Pet Categories
                         </h3>
+                        <p style="margin: 0; color: rgba(17,24,39,0.62); font-weight: 650; font-size: 13px; line-height: 1.5;">
+                            Top pet types approved in the system (shown with share %).
+                        </p>
                     </div>
                     <div>
                         <?php if (empty($categoryData)): ?>
@@ -1132,8 +1174,8 @@ function createChart(type = 'pet') {
             datasets: [{
                 label: preparedData.label,
                 data: preparedData.values,
-                borderColor: 'var(--color-primary)',
-                backgroundColor: 'rgba(26, 115, 232, 0.1)',
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.12)',
                 borderWidth: 3,
                 fill: true,
                 tension: 0.4,
