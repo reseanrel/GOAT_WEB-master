@@ -501,10 +501,10 @@
             <div class="sidebar-user">
                 <div style="display: flex; align-items: center;">
                     <div class="user-avatar">
-                        <?php echo strtoupper(substr($_SESSION['full_name'] ?? 'U', 0, 1)); ?>
+                        <?php echo strtoupper(substr($_SESSION['user_name'] ?? ($_SESSION['full_name'] ?? 'U'), 0, 1)); ?>
                     </div>
                     <div class="user-info">
-                        <h6><?php echo htmlspecialchars($_SESSION['full_name'] ?? 'User'); ?></h6>
+                        <h6><?php echo htmlspecialchars($_SESSION['user_name'] ?? ($_SESSION['full_name'] ?? 'User')); ?></h6>
                         <p><?php echo $_SESSION['is_admin'] ? 'Administrator' : 'Pet Owner'; ?></p>
                     </div>
                 </div>

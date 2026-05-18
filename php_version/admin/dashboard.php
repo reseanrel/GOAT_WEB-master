@@ -825,6 +825,208 @@ try {
     }
 </style>
 
+<style>
+    .admin-dashboard {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding-bottom: var(--spacing-2xl);
+    }
+
+    .dashboard-welcome {
+        position: relative;
+        background: #fff7ed;
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: 24px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.05);
+        padding: 32px;
+        margin-bottom: 32px;
+        text-align: left;
+        overflow: hidden;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        flex-wrap: wrap;
+    }
+
+    .dashboard-welcome::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(circle at 15% 20%, rgba(245,158,11,0.35) 0%, rgba(245,158,11,0) 45%),
+            radial-gradient(circle at 80% 30%, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0) 45%),
+            radial-gradient(circle at 60% 90%, rgba(37,99,235,0.12) 0%, rgba(37,99,235,0) 55%),
+            linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.34));
+        pointer-events: none;
+        opacity: 0.95;
+    }
+
+    .dashboard-welcome > div {
+        position: relative;
+        z-index: 1;
+    }
+
+    .welcome-title {
+        font-size: 34px;
+        font-weight: 1000;
+        color: rgba(17,24,39,0.96);
+        margin-bottom: 8px;
+        letter-spacing: -0.4px;
+    }
+
+    .welcome-subtitle {
+        font-size: 17px;
+        color: rgba(17,24,39,0.72);
+        margin: 0;
+        font-weight: 650;
+        line-height: 1.6;
+    }
+
+    .admin-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: rgba(255,255,255,0.92);
+        border-radius: 22px;
+        padding: 24px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.06);
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: linear-gradient(90deg, #f59e0b, #34d399);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 34px rgba(0,0,0,0.08);
+        border-color: rgba(245,158,11,0.25);
+    }
+
+    .stat-card.users::before { background: linear-gradient(90deg, #4285f4, #8ab4f8); }
+    .stat-card.pets::before { background: linear-gradient(90deg, #34a853, #81c784); }
+    .stat-card.pending::before { background: linear-gradient(90deg, #fbbc04, #fdd835); }
+    .stat-card.lost::before { background: linear-gradient(90deg, #f59e0b, #fb7185); }
+    .stat-card.adoption::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+
+    .stat-content {
+        align-items: center;
+    }
+
+    .stat-icon {
+        background: rgba(245,158,11,0.12);
+        color: #9a3412;
+        border-radius: 20px;
+    }
+
+    .stat-title {
+        font-weight: 800;
+    }
+
+    .stat-value {
+        color: rgba(17,24,39,0.95);
+    }
+
+    .dashboard-grid,
+    .analytics-grid {
+        gap: 24px;
+    }
+
+    .panel-card,
+    .chart-container,
+    .category-breakdown,
+    .activities-feed {
+        background: rgba(255,255,255,0.92);
+        border-radius: 22px;
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+    }
+
+    .panel-header {
+        background: transparent;
+    }
+
+    .chart-container {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .chart-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: linear-gradient(90deg, #f59e0b, #34d399);
+        opacity: 0.7;
+    }
+
+    .chart-title {
+        font-weight: 1000;
+    }
+
+    .quick-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .action-card {
+        background: rgba(255,255,255,0.92);
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .action-card:hover {
+        border-color: rgba(245,158,11,0.25);
+    }
+
+    .pending-list {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .pending-item {
+        border-radius: 22px;
+        min-height: 480px;
+    }
+
+    .pending-review-btn {
+        background: #f59e0b;
+    }
+
+    .pending-review-btn:hover {
+        background: #d97706;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-welcome {
+            padding: 24px;
+        }
+
+        .welcome-title {
+            font-size: 28px;
+        }
+
+        .quick-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
 <div class="admin-dashboard">
     <div class="dashboard-welcome">
         <div>
@@ -957,41 +1159,41 @@ try {
 
             <!-- Category Breakdown & Activities -->
             <div>
-                    <div class="category-breakdown">
+                <div class="category-breakdown">
                     <div class="panel-header" style="padding: 0 0 var(--spacing-lg) 0; border: none;">
                         <h3 class="panel-title" style="font-size: 18px; margin-bottom: 6px;">
                             <i class="fas fa-chart-pie"></i>
                             Pet Categories
                         </h3>
                         <p style="margin: 0; color: rgba(17,24,39,0.62); font-weight: 650; font-size: 13px; line-height: 1.5;">
-                            Top pet types approved in the system (shown with share %).
+                            Category wheel chart showing the approved pet distribution.
                         </p>
                     </div>
-                    <div>
-                        <?php if (empty($categoryData)): ?>
-                            <div style="text-align: center; padding: var(--spacing-xl); color: var(--color-text-secondary);">
-                                <i class="fas fa-chart-pie fa-2x" style="opacity: 0.5; margin-bottom: var(--spacing-md);"></i>
-                                <p>No category data available</p>
-                            </div>
-                        <?php else: ?>
+
+                    <?php if (empty($categoryData)): ?>
+                        <div style="text-align: center; padding: var(--spacing-xl); color: var(--color-text-secondary);">
+                            <i class="fas fa-chart-pie fa-2x" style="opacity: 0.5; margin-bottom: var(--spacing-md);"></i>
+                            <p>No category data available</p>
+                        </div>
+                    <?php else: ?>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="categoryChart" style="width: 100% !important; height: 100% !important;"></canvas>
+                        </div>
+                        <div style="margin-top: var(--spacing-lg); display: grid; gap: 10px;">
                             <?php foreach ($categoryData as $category): ?>
                                 <?php
                                     $categoryCount = (int)$category['count'];
                                     $percent = $totalApprovedPets > 0 ? round(($categoryCount / $totalApprovedPets) * 100, 1) : 0;
-                                    $barWidth = $totalApprovedPets > 0 ? min(100, round(($categoryCount / $totalApprovedPets) * 100, 1)) : 0;
                                 ?>
                                 <div class="category-item">
                                     <div class="category-item-row">
                                         <span class="category-name"><?php echo htmlspecialchars(ucfirst($category['category'])); ?></span>
                                         <span class="category-count"><?php echo $categoryCount; ?> (<?php echo $percent; ?>%)</span>
                                     </div>
-                                    <div class="category-bar" aria-hidden="true">
-                                        <div class="category-bar-fill" style="width: <?php echo $barWidth; ?>%;"></div>
-                                    </div>
                                 </div>
                             <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="activities-feed">
@@ -1131,9 +1333,10 @@ try {
 <?php include '../includes/footer.php'; ?>
 
 <script>
-// Chart data
+/* Chart data */
 const petMonthlyData = <?php echo json_encode($monthlyData); ?>;
 const userMonthlyData = <?php echo json_encode($userMonthlyData); ?>;
+const categoryData = <?php echo json_encode($categoryData); ?>;
 
 // Prepare data for charts
 function prepareChartData(data, label) {
@@ -1156,6 +1359,76 @@ function prepareChartData(data, label) {
 
 let currentChart = 'pet';
 let chart = null;
+let categoryChart = null;
+
+function createCategoryChart() {
+    const canvas = document.getElementById('categoryChart');
+    if (!canvas) {
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+
+    if (categoryChart) {
+        categoryChart.destroy();
+    }
+
+    const labels = categoryData.map(item => item.category);
+    const values = categoryData.map(item => parseInt(item.count));
+    const colors = ['#2563eb', '#16a34a', '#f59e0b', '#0ea5e9', '#db2777', '#7c3aed'];
+
+    categoryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors.slice(0, labels.length),
+                borderColor: '#ffffff',
+                borderWidth: 3,
+                hoverBorderWidth: 4,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 18,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        color: '#374151',
+                        font: {
+                            size: 12,
+                            weight: '600'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(17, 24, 39, 0.92)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#d1d5db',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((sum, value) => sum + value, 0);
+                            const value = context.parsed;
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return ` ${context.label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
 
 function createChart(type = 'pet') {
     const ctx = document.getElementById('registrationChart').getContext('2d');
@@ -1265,5 +1538,6 @@ function switchChart(type) {
 // Initialize chart on page load
 document.addEventListener('DOMContentLoaded', function() {
     createChart('pet');
+    createCategoryChart();
 });
 </script>
