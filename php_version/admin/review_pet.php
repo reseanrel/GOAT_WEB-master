@@ -440,9 +440,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     Reject
                 </button>
             <?php endif; ?>
-            <button class="btn-action btn-delete" onclick="deletePet()">
-                <i class="fas fa-trash"></i>
-                Delete
+            <button class="btn-action btn-delete" onclick="archivePet()">
+                <i class="fas fa-trash-alt"></i>
+                Archive
             </button>
         </div>
     </div>
@@ -597,8 +597,8 @@ function closeRejectModal() {
     document.body.style.overflow = '';
 }
 
-function deletePet() {
-    if (confirm('Are you sure you want to delete this pet? This action cannot be undone.')) {
+function archivePet() {
+    if (confirm('Archive this pet? This can be restored later.')) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.innerHTML = '<input type="hidden" name="action" value="delete">';

@@ -42,15 +42,20 @@ $query = "
     SELECT p.*, u.full_name as owner_name, u.email as owner_email
     FROM pets p
     JOIN users u ON p.owner_id = u.id
-    WHERE p.archived = 0
-";
+    WHERE 1=1
+ ";
 
-$params = [];
+    $params = [];
 
-if ($status !== 'all') {
-    $query .= " AND p.status = ?";
-    $params[] = $status;
-}
+    if ($status === 'archived') {
+        $query .= " AND p.archived = 1";
+    } else {
+        $query .= " AND p.archived = 0";
+        if ($status !== 'all') {
+            $query .= " AND p.status = ?";
+            $params[] = $status;
+        }
+    }
 
 if (!empty($search)) {
     $query .= " AND (p.name LIKE ? OR u.full_name LIKE ? OR p.category LIKE ? OR p.pet_type LIKE ?)";
@@ -73,6 +78,7 @@ $stats = [
     'pending' => $conn->query("SELECT COUNT(*) FROM pets WHERE status = 'pending' AND archived = 0")->fetchColumn(),
     'approved' => $conn->query("SELECT COUNT(*) FROM pets WHERE status = 'approved' AND archived = 0")->fetchColumn(),
     'rejected' => $conn->query("SELECT COUNT(*) FROM pets WHERE status = 'rejected' AND archived = 0")->fetchColumn(),
+    'archived' => $conn->query("SELECT COUNT(*) FROM pets WHERE archived = 1")->fetchColumn(),
 ];
 ?>
 
@@ -375,6 +381,7 @@ $stats = [
                     <option value="pending" <?php echo $status === 'pending' ? 'selected' : ''; ?>>Pending</option>
                     <option value="approved" <?php echo $status === 'approved' ? 'selected' : ''; ?>>Approved</option>
                     <option value="rejected" <?php echo $status === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
+                    <option value="archived" <?php echo $status === 'archived' ? 'selected' : ''; ?>>Archived</option>
                 </select>
             </div>
             <button type="submit" class="btn-filter">Filter</button>
@@ -433,16 +440,24 @@ $stats = [
                             <td><?php echo date('M j, Y', strtotime($pet['registered_on'])); ?></td>
                             <td>
                                 <div class="pet-actions">
-                                    <a href="review_pet.php?id=<?php echo $pet['id']; ?>" class="btn-action btn-view">View</a>
-                                    <?php if ($pet['status'] === 'pending'): ?>
-                                        <form method="POST" style="display: inline;">
-                                            <input type="hidden" name="pet_id" value="<?php echo $pet['id']; ?>">
-                                            <input type="hidden" name="action" value="approve">
-                                            <button type="submit" class="btn-action btn-approve" onclick="return confirm('Approve this pet?')">Approve</button>
-                                        </form>
-                                        <button class="btn-action btn-reject" onclick="showRejectModal(<?php echo $pet['id']; ?>, '<?php echo htmlspecialchars($pet['name']); ?>')">Reject</button>
-                                    <?php endif; ?>
-                                    <button class="btn-action btn-delete" onclick="deletePet(<?php echo $pet['id']; ?>, '<?php echo htmlspecialchars($pet['name']); ?>')">Delete</button>
+                                     <a href="review_pet.php?id=<?php echo $pet['id']; ?>" class="btn-action btn-view">View</a>
+                                     <?php if ($status === 'archived'): ?>
+                                         <form method="POST" style="display: inline;">
+                                             <input type="hidden" name="pet_id" value="<?php echo $pet['id']; ?>">
+                                             <input type="hidden" name="action" value="unarchive">
+                                             <button type="submit" class="btn-action btn-unarchive" onclick="return confirm('Unarchive this pet?')">Unarchive</button>
+                                         </form>
+                                     <?php else: ?>
+                                         <?php if ($pet['status'] === 'pending'): ?>
+                                             <form method="POST" style="display: inline;">
+                                                 <input type="hidden" name="pet_id" value="<?php echo $pet['id']; ?>">
+                                                 <input type="hidden" name="action" value="approve">
+                                                 <button type="submit" class="btn-action btn-approve" onclick="return confirm('Approve this pet?')">Approve</button>
+                                             </form>
+                                             <button class="btn-action btn-reject" onclick="showRejectModal(<?php echo $pet['id']; ?>, '<?php echo htmlspecialchars($pet['name']); ?>')">Reject</button>
+                                         <?php endif; ?>
+                                         <button class="btn-action btn-delete" onclick="archivePet(<?php echo $pet['id']; ?>, '<?php echo htmlspecialchars($pet['name']); ?>')">Archive</button>
+                                     <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -492,8 +507,8 @@ function closeRejectModal() {
     document.getElementById('rejectForm').reset();
 }
 
-function deletePet(petId, petName) {
-    if (confirm(`Are you sure you want to delete ${petName}? This action cannot be undone.`)) {
+function archivePet(petId, petName) {
+    if (confirm(`Archive ${petName}? This can be restored later from archived pets.`)) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.innerHTML = `

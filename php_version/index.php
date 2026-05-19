@@ -304,13 +304,17 @@ require_once 'includes/auth.php';
 $db = Database::getInstance();
 $conn = $db->getConnection();
 
-$totalPets = (int)$conn->query("SELECT COUNT(*) as total FROM pets WHERE archived = 0 AND status = 'approved'")->fetch()['total'];
+$totalPets = 0;
+$totalUsers = 0;
+$lostPets = 0;
+$adoptionPets = 0;
 
-$totalUsers = (int)$conn->query("SELECT COUNT(*) as total FROM users WHERE archived = 0")->fetch()['total'];
-
-$lostPets = (int)$conn->query("SELECT COUNT(*) as total FROM pets WHERE lost = 1 AND archived = 0 AND status = 'approved' AND deceased = 0")->fetch()['total'];
-
-$adoptionPets = (int)$conn->query("SELECT COUNT(*) as total FROM pets WHERE available_for_adoption = 1 AND archived = 0 AND status = 'approved' AND deceased = 0")->fetch()['total'];
+if ($conn instanceof PDO) {
+    $totalPets = (int)$conn->query("SELECT COUNT(*) as total FROM pets WHERE archived = 0 AND status = 'approved'")->fetch()['total'];
+    $totalUsers = (int)$conn->query("SELECT COUNT(*) as total FROM users WHERE archived = 0")->fetch()['total'];
+    $lostPets = (int)$conn->query("SELECT COUNT(*) as total FROM pets WHERE lost = 1 AND archived = 0 AND status = 'approved' AND deceased = 0")->fetch()['total'];
+    $adoptionPets = (int)$conn->query("SELECT COUNT(*) as total FROM pets WHERE available_for_adoption = 1 AND archived = 0 AND status = 'approved' AND deceased = 0")->fetch()['total'];
+}
 ?>
 
 <div class="index-page">

@@ -6,8 +6,8 @@ define('DB_USER', 'root');
 define('DB_PASS', '');
 
 class Database {
-    private static $instance = null;
-    private $conn;
+    private static ?Database $instance = null;
+    private ?PDO $conn = null;
     
     private function __construct() {
         try {
@@ -22,18 +22,19 @@ class Database {
                 ]
             );
         } catch(PDOException $e) {
-            die("Connection failed: " . $e->getMessage());
+            $this->conn = null;
+            error_log("Database connection failed: " . $e->getMessage());
         }
     }
     
-    public static function getInstance() {
+    public static function getInstance(): Database {
         if (self::$instance === null) {
             self::$instance = new Database();
         }
         return self::$instance;
     }
     
-    public function getConnection() {
+    public function getConnection(): ?PDO {
         return $this->conn;
     }
 }

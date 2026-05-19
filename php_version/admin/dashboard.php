@@ -336,7 +336,7 @@ try {
     .main-panel {
         display: flex;
         flex-direction: column;
-        gap: var(--spacing-xl);
+        gap: 20px;
     }
 
     .panel-card {
@@ -378,7 +378,7 @@ try {
     .pending-list {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: var(--spacing-lg);
+        gap: 16px;
         align-items: stretch;
     }
 
@@ -391,7 +391,7 @@ try {
         transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
         display: flex;
         flex-direction: column;
-        min-height: 480px;
+        min-height: 380px;
     }
 
     .pending-item:hover {
@@ -401,7 +401,7 @@ try {
     }
 
     .pending-media {
-        height: 210px;
+        height: 170px;
         position: relative;
         background: #fff;
     }
@@ -461,10 +461,10 @@ try {
     .pending-type-other { background: rgba(148,163,184,0.18); border-color: rgba(148,163,184,0.28); color: #334155; }
 
     .pending-body {
-        padding: var(--spacing-lg);
+        padding: 16px;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
         flex: 1;
     }
 
@@ -615,7 +615,7 @@ try {
 
     /* Analytics Section */
     .analytics-section {
-        margin-bottom: var(--spacing-2xl);
+        margin-bottom: 8px !important;
     }
 
     .analytics-grid {
@@ -1148,10 +1148,10 @@ try {
                             <i class="fas fa-chart-line"></i>
                             Registration Trends
                         </h3>
-                        <div style="display: flex; gap: var(--spacing-sm);">
-                            <button onclick="switchChart('pet')" id="petChartBtn" style="background: var(--color-primary); color: white; border: none; padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--radius-md); font-size: 12px; font-weight: 500; cursor: pointer;">Pets</button>
-                            <button onclick="switchChart('user')" id="userChartBtn" style="background: var(--color-bg-secondary); color: var(--color-text); border: 1px solid var(--color-border); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--radius-md); font-size: 12px; font-weight: 500; cursor: pointer;">Users</button>
-                        </div>
+                         <div style="display: flex; gap: 6px; background: rgba(0,0,0,0.04); padding: 3px; border-radius: 999px;">
+                             <button onclick="switchChart('pet')" id="petChartBtn" style="background: #f59e0b; color: white; border: none; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s;">Pets</button>
+                             <button onclick="switchChart('user')" id="userChartBtn" style="background: transparent; color: rgba(17,24,39,0.7); border: none; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .15s;">Users</button>
+                         </div>
                     </div>
                     <canvas id="registrationChart" class="chart-canvas"></canvas>
                 </div>
@@ -1440,6 +1440,10 @@ function createChart(type = 'pet') {
     const data = type === 'pet' ? petMonthlyData : userMonthlyData;
     const preparedData = prepareChartData(data, type === 'pet' ? 'Pet Registrations' : 'User Registrations');
 
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(245, 158, 11, 0.25)');
+    gradient.addColorStop(1, 'rgba(245, 158, 11, 0.02)');
+
     chart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -1448,32 +1452,33 @@ function createChart(type = 'pet') {
                 label: preparedData.label,
                 data: preparedData.values,
                 borderColor: '#f59e0b',
-                backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                backgroundColor: gradient,
                 borderWidth: 3,
                 fill: true,
-                tension: 0.4,
-                pointBackgroundColor: 'var(--color-primary)',
-                pointBorderColor: 'white',
-                pointBorderWidth: 2,
-                pointRadius: 6,
-                pointHoverRadius: 8
+                tension: 0.45,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#f59e0b',
+                pointBorderWidth: 3,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                pointHoverBorderWidth: 3
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: { duration: 800, easing: 'easeOutQuart' },
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: 'white',
-                    bodyColor: 'white',
-                    borderColor: 'var(--color-border)',
+                    backgroundColor: 'rgba(17,24,39,0.95)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: 'rgba(245,158,11,0.3)',
                     borderWidth: 1,
-                    cornerRadius: 8,
-                    displayColors: false
+                    cornerRadius: 12,
+                    displayColors: false,
+                    padding: 12
                 }
             },
             scales: {
