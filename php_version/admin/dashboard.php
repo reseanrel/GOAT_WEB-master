@@ -92,8 +92,7 @@ try {
 // Initialize empty arrays for analytics
 $monthlyData = [];
 $userMonthlyData = [];
-$categoryData = [];
-$recentActivities = [];
+    $categoryData = [];
 
 try {
     // Get monthly registrations for the last 12 months
@@ -134,30 +133,6 @@ try {
         LIMIT 5
     ");
     $categoryData = $stmt->fetchAll();
-
-    // Get recent activities (last 10)
-    $stmt = $conn->prepare("
-        SELECT 'pet_approved' as type, p.name as title, u.full_name as user_name,
-               p.approved_at as activity_date, 'Pet registration approved' as description
-        FROM pets p
-        JOIN users u ON p.owner_id = u.id
-        WHERE p.status = 'approved' AND p.approved_at IS NOT NULL
-        UNION ALL
-        SELECT 'user_registered' as type, u.full_name as title, u.full_name as user_name,
-               u.created_at as activity_date, 'New user registered' as description
-        FROM users u
-        WHERE u.archived = 0
-        UNION ALL
-        SELECT 'pet_reported_lost' as type, p.name as title, u.full_name as user_name,
-               p.updated_at as activity_date, 'Pet reported as lost' as description
-        FROM pets p
-        JOIN users u ON p.owner_id = u.id
-        WHERE p.lost = 1 AND p.archived = 0
-        ORDER BY activity_date DESC
-        LIMIT 10
-    ");
-    $stmt->execute();
-    $recentActivities = $stmt->fetchAll();
 } catch (Exception $e) {
     // Database queries failed - use empty arrays
 }
@@ -626,8 +601,7 @@ try {
     }
 
     .chart-container,
-    .category-breakdown,
-    .activities-feed {
+    .category-breakdown {
         width: 100%;
         height: 100%;
     }
@@ -727,72 +701,7 @@ try {
         font-weight: 600;
         color: var(--color-primary);
     }
-
-    .activities-feed {
-        background: var(--color-bg);
-        border-radius: var(--radius-xl);
-        box-shadow: var(--shadow-md);
-        border: 1px solid var(--color-border);
-        overflow: hidden;
-        margin-top: var(--spacing-lg);
-    }
-
-    .activity-item {
-        padding: var(--spacing-lg);
-        border-bottom: 1px solid var(--color-border);
-        display: flex;
-        align-items: flex-start;
-        gap: var(--spacing-md);
-        transition: background-color 0.2s ease;
-    }
-
-    .activity-item:hover {
-        background: var(--color-bg-secondary);
-    }
-
-    .activity-item:last-child {
-        border-bottom: none;
-    }
-
-    .activity-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 16px;
-        flex-shrink: 0;
-    }
-
-    .activity-icon.pet-approved { background: var(--color-success); }
-    .activity-icon.user-registered { background: var(--color-primary); }
-    .activity-icon.pet-reported-lost { background: var(--color-error); }
-
-    .activity-content {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .activity-title {
-        font-weight: 600;
-        color: var(--color-text);
-        margin-bottom: var(--spacing-xs);
-        font-size: 14px;
-    }
-
-    .activity-description {
-        color: var(--color-text-secondary);
-        font-size: 13px;
-        margin-bottom: var(--spacing-xs);
-    }
-
-    .activity-time {
-        color: var(--color-text-muted);
-        font-size: 12px;
-    }
-
+ 
     @media (max-width: 1024px) {
         .analytics-grid {
             grid-template-columns: 1fr;
@@ -948,8 +857,7 @@ try {
 
     .panel-card,
     .chart-container,
-    .category-breakdown,
-    .activities-feed {
+    .category-breakdown {
         background: rgba(255,255,255,0.92);
         border-radius: 22px;
         border: 1px solid rgba(0,0,0,0.06);
@@ -1157,7 +1065,7 @@ try {
                 </div>
             </div>
 
-            <!-- Category Breakdown & Activities -->
+            <!-- Pet Categories -->
             <div>
                 <div class="category-breakdown">
                     <div class="panel-header" style="padding: 0 0 var(--spacing-lg) 0; border: none;">
@@ -1195,52 +1103,10 @@ try {
                         </div>
                     <?php endif; ?>
                 </div>
-
-                <div class="activities-feed">
-                    <div class="panel-header" style="padding: var(--spacing-lg); border-bottom: 1px solid var(--color-border);">
-                        <h3 class="panel-title" style="font-size: 18px; margin: 0;">
-                            <i class="fas fa-history"></i>
-                            Recent Activities
-                        </h3>
-                    </div>
-                    <div>
-                        <?php if (empty($recentActivities)): ?>
-                            <div style="text-align: center; padding: var(--spacing-2xl); color: var(--color-text-secondary);">
-                                <i class="fas fa-history fa-2x" style="opacity: 0.5; margin-bottom: var(--spacing-md);"></i>
-                                <p>No recent activities</p>
-                            </div>
-                        <?php else: ?>
-                            <?php foreach ($recentActivities as $activity): ?>
-                                <div class="activity-item">
-                                    <div class="activity-icon activity-icon-<?php echo str_replace('_', '-', $activity['type']); ?>">
-                                        <?php
-                                        switch ($activity['type']) {
-                                            case 'pet_approved':
-                                                echo '<i class="fas fa-check"></i>';
-                                                break;
-                                            case 'user_registered':
-                                                echo '<i class="fas fa-user-plus"></i>';
-                                                break;
-                                            case 'pet_reported_lost':
-                                                echo '<i class="fas fa-exclamation-triangle"></i>';
-                                                break;
-                                        }
-                                        ?>
-                                    </div>
-                                    <div class="activity-content">
-                                        <div class="activity-title"><?php echo htmlspecialchars($activity['title']); ?></div>
-                                        <div class="activity-description"><?php echo htmlspecialchars($activity['description']); ?></div>
-                                        <div class="activity-time"><?php echo date('M j, Y g:i A', strtotime($activity['activity_date'])); ?></div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
-
+ 
     <div class="dashboard-grid">
         <div class="main-panel">
             <div class="panel-card">

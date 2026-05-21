@@ -662,11 +662,6 @@
                                 </a>
                             </div>
                         </div>
-
-                        <a href="/lost_pets.php" style="text-decoration:none; color: var(--color-text-secondary); display:flex; align-items:center; gap:8px;">
-                            <i class="fas fa-exclamation-triangle" style="color: var(--color-error);"></i>
-                            <span style="font-weight:600; font-size:13px;"><?php echo (int)$userLostCount; ?> lost pets</span>
-                        </a>
                     </div>
                 <?php endif; ?>
 
