@@ -8,6 +8,6 @@ $_SESSION['user_email'] = 'admin@pila.pets';
 $_SESSION['user_contact'] = '';
 $_SESSION['user_address'] = 'Pila, Laguna';
 $_SESSION['user_age'] = 30;
-header('Location: /admin/dashboard.php');
+header('Location: /php_version/admin/dashboard.php');
 exit();
 ?>

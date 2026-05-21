@@ -89,10 +89,47 @@ try {
     $adoptionPets = 0;
 }
 
-// Initialize empty arrays for analytics
+// Total approved pets for analytics
+try {
+    $stmt = $conn->query("SELECT COUNT(*) as total FROM pets WHERE archived = 0 AND status = 'approved' AND deceased = 0");
+    $totalApprovedPets = $stmt->fetch()['total'];
+} catch (Exception $e) {
+    $totalApprovedPets = 0;
+}
+
+ // Initialize empty arrays for analytics
 $monthlyData = [];
 $userMonthlyData = [];
-    $categoryData = [];
+$categoryData = [];
+$categoryWheelGradient = '';
+$categoryWheelSegments = [];
+$categoryPalette = ['#2563eb', '#16a34a', '#f59e0b', '#0ea5e9', '#db2777', '#7c3aed'];
+
+function buildCategoryWheelGradient(array $categoryData, int $totalApprovedPets, array $categoryPalette): array
+{
+    $segments = [];
+    $cursor = 0.0;
+
+    if ($totalApprovedPets <= 0) {
+        return ['', []];
+    }
+
+    foreach ($categoryData as $index => $category) {
+        $count = (int)($category['count'] ?? 0);
+        if ($count <= 0) {
+            continue;
+        }
+
+        $percentage = ($count / $totalApprovedPets) * 100;
+        $start = $cursor;
+        $cursor += $percentage;
+        $color = $categoryPalette[$index % count($categoryPalette)];
+
+        $segments[] = sprintf('%s %.2f%% %.2f%%', $color, $start, $cursor);
+    }
+
+    return [implode(', ', $segments), $segments];
+}
 
 try {
     // Get monthly registrations for the last 12 months
@@ -133,6 +170,10 @@ try {
         LIMIT 5
     ");
     $categoryData = $stmt->fetchAll();
+
+    if (!empty($categoryData) && $totalApprovedPets > 0) {
+        [$categoryWheelGradient, $categoryWheelSegments] = buildCategoryWheelGradient($categoryData, (int)$totalApprovedPets, $categoryPalette);
+    }
 } catch (Exception $e) {
     // Database queries failed - use empty arrays
 }
@@ -1078,28 +1119,44 @@ try {
                         </p>
                     </div>
 
-                    <?php if (empty($categoryData)): ?>
+                    <?php if (empty($categoryData) || empty($categoryWheelGradient)): ?>
                         <div style="text-align: center; padding: var(--spacing-xl); color: var(--color-text-secondary);">
                             <i class="fas fa-chart-pie fa-2x" style="opacity: 0.5; margin-bottom: var(--spacing-md);"></i>
                             <p>No category data available</p>
                         </div>
                     <?php else: ?>
-                        <div style="height: 300px; position: relative;">
-                            <canvas id="categoryChart" style="width: 100% !important; height: 100% !important;"></canvas>
-                        </div>
-                        <div style="margin-top: var(--spacing-lg); display: grid; gap: 10px;">
-                            <?php foreach ($categoryData as $category): ?>
-                                <?php
-                                    $categoryCount = (int)$category['count'];
-                                    $percent = $totalApprovedPets > 0 ? round(($categoryCount / $totalApprovedPets) * 100, 1) : 0;
-                                ?>
-                                <div class="category-item">
-                                    <div class="category-item-row">
-                                        <span class="category-name"><?php echo htmlspecialchars(ucfirst($category['category'])); ?></span>
-                                        <span class="category-count"><?php echo $categoryCount; ?> (<?php echo $percent; ?>%)</span>
+                        <div style="display: grid; grid-template-columns: minmax(180px, 260px) 1fr; gap: var(--spacing-lg); align-items: center;">
+                            <div style="display: flex; justify-content: center;">
+                                <div style="position: relative; width: 230px; height: 230px;">
+                                    <div style="width: 100%; height: 100%; border-radius: 50%; background: conic-gradient(from 0deg, <?php echo htmlspecialchars($categoryWheelGradient, ENT_QUOTES, 'UTF-8'); ?>); box-shadow: inset 0 0 0 8px rgba(255,255,255,0.92), 0 12px 30px rgba(0,0,0,0.08);"></div>
+                                    <div style="position: absolute; inset: 50%; transform: translate(-50%, -50%); width: 108px; height: 108px; border-radius: 50%; background: rgba(255,255,255,0.98); border: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.06);">
+                                        <div style="font-size: 24px; font-weight: 1000; color: var(--color-primary); line-height: 1;"><?php echo (int)$totalApprovedPets; ?></div>
+                                        <div style="font-size: 11px; font-weight: 800; color: rgba(17,24,39,0.62); text-transform: uppercase; letter-spacing: 0.6px; margin-top: 4px;">Approved Pets</div>
                                     </div>
                                 </div>
-                            <?php endforeach; ?>
+                            </div>
+
+                            <div style="display: grid; gap: 10px;">
+                                <?php foreach ($categoryData as $index => $category): ?>
+                                    <?php
+                                        $categoryCount = (int)$category['count'];
+                                        $percent = $totalApprovedPets > 0 ? round(($categoryCount / $totalApprovedPets) * 100, 1) : 0;
+                                        $segmentColor = $categoryPalette[$index % count($categoryPalette)];
+                                    ?>
+                                    <div class="category-item">
+                                        <div class="category-item-row">
+                                            <span class="category-name" style="display:flex; align-items:center; gap:10px;">
+                                                <span style="width:12px; height:12px; border-radius:50%; background: <?php echo htmlspecialchars($segmentColor, ENT_QUOTES, 'UTF-8'); ?>; display:inline-block;"></span>
+                                                <?php echo htmlspecialchars(ucfirst($category['category'])); ?>
+                                            </span>
+                                            <span class="category-count"><?php echo $categoryCount; ?> (<?php echo $percent; ?>%)</span>
+                                        </div>
+                                        <div class="category-bar">
+                                            <div class="category-bar-fill" style="width: <?php echo $percent; ?>%; background: <?php echo htmlspecialchars($segmentColor, ENT_QUOTES, 'UTF-8'); ?>;"></div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -1225,76 +1282,6 @@ function prepareChartData(data, label) {
 
 let currentChart = 'pet';
 let chart = null;
-let categoryChart = null;
-
-function createCategoryChart() {
-    const canvas = document.getElementById('categoryChart');
-    if (!canvas) {
-        return;
-    }
-
-    const ctx = canvas.getContext('2d');
-
-    if (categoryChart) {
-        categoryChart.destroy();
-    }
-
-    const labels = categoryData.map(item => item.category);
-    const values = categoryData.map(item => parseInt(item.count));
-    const colors = ['#2563eb', '#16a34a', '#f59e0b', '#0ea5e9', '#db2777', '#7c3aed'];
-
-    categoryChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: values,
-                backgroundColor: colors.slice(0, labels.length),
-                borderColor: '#ffffff',
-                borderWidth: 3,
-                hoverBorderWidth: 4,
-                hoverOffset: 10
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '62%',
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 18,
-                        usePointStyle: true,
-                        pointStyle: 'circle',
-                        color: '#374151',
-                        font: {
-                            size: 12,
-                            weight: '600'
-                        }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(17, 24, 39, 0.92)',
-                    titleColor: '#ffffff',
-                    bodyColor: '#ffffff',
-                    borderColor: '#d1d5db',
-                    borderWidth: 1,
-                    cornerRadius: 8,
-                    displayColors: false,
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((sum, value) => sum + value, 0);
-                            const value = context.parsed;
-                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                            return ` ${context.label}: ${value} (${percentage}%)`;
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
 
 function createChart(type = 'pet') {
     const ctx = document.getElementById('registrationChart').getContext('2d');
@@ -1409,6 +1396,5 @@ function switchChart(type) {
 // Initialize chart on page load
 document.addEventListener('DOMContentLoaded', function() {
     createChart('pet');
-    createCategoryChart();
 });
 </script>
