@@ -3,6 +3,11 @@ session_start();
 require_once '../includes/auth.php';
 requireLogin();
 
+if (isAdmin()) {
+    header('Location: ../adoption.php');
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     header('Location: ../adoption.php');
     exit();
@@ -43,6 +48,12 @@ $existingApplication = $stmt->fetch();
 
 if ($existingApplication) {
     header('Location: ../adoption.php?message=already_applied');
+    exit();
+}
+
+// Prevent owner from applying to adopt their own pet
+if ((int)$pet['owner_id'] === (int)$_SESSION['user_id']) {
+    header('Location: ../adoption.php');
     exit();
 }
 ?>

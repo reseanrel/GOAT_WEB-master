@@ -34,6 +34,13 @@ try {
 } catch (Exception $e) {
     $userPets = [];
 }
+
+// Load current user for contact modal pre-fill
+$currentUser = getUserById($_SESSION['user_id']);
+if ($currentUser) {
+    $_SESSION['email'] = $currentUser['email'] ?? '';
+    $_SESSION['contact_number'] = $currentUser['contact_number'] ?? '';
+}
 ?>
 
 <?php include 'includes/header.php'; ?>
@@ -866,10 +873,12 @@ try {
                                 <strong>Contact:</strong> <?php echo htmlspecialchars($pet['owner_contact'] ?? 'Not provided'); ?>
                             </div>
 
-                            <button class="contact-owner-btn" onclick="contactOwner('<?php echo htmlspecialchars($pet['owner_email']); ?>', '<?php echo htmlspecialchars($pet['name']); ?>')">
-                                <i class="fas fa-envelope"></i>
-                                Contact Owner
-                            </button>
+                              <?php if ((int)$pet['owner_id'] !== (int)$_SESSION['user_id']): ?>
+                                  <button class="contact-owner-btn" onclick="openContactModal(<?php echo $pet['id']; ?>, '<?php echo htmlspecialchars($pet['name'], ENT_QUOTES); ?>', 'lost_pet')">
+                                      <i class="fas fa-envelope"></i>
+                                      Contact Owner
+                                  </button>
+                              <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -931,12 +940,6 @@ function closeReportModal() {
     document.getElementById('lostPetForm').reset();
 }
 
-function contactOwner(email, petName) {
-    const subject = encodeURIComponent(`Regarding Lost Pet: ${petName}`);
-    const body = encodeURIComponent(`Hello,\n\nI may have found your lost pet ${petName}. Please contact me to discuss.\n\nBest regards,`);
-    window.open(`mailto:${email}?subject=${subject}&body=${body}`);
-}
-
 document.getElementById('lostPetForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
@@ -991,4 +994,5 @@ document.addEventListener('keydown', function(e) {
 });
 </script>
 
+<?php include 'includes/contact_owner_modal.php'; ?>
 <?php include 'includes/footer.php'; ?>

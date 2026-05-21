@@ -135,6 +135,60 @@ class EmailService {
 
         return self::sendEmail($ownerEmail, $subject, $htmlContent, $textContent, $from);
     }
+
+    public static function sendContactInquiryEmail($ownerEmail, $ownerName, $petName, $senderName, $senderEmail, $senderPhone, $message, $inquiryType = 'general') {
+        $subject = "Inquiry about your pet: " . $petName;
+        $from = COMPANY_NAME . " <" . MAIL_USERNAME . ">";
+
+        $typeLabel = $inquiryType === 'adoption' ? 'Adoption' : ($inquiryType === 'lost_pet' ? 'Lost Pet' : 'General');
+
+        $htmlContent = "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #1a73e8; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+                .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
+                .sender-box { background: white; border: 1px solid #e0e0e0; padding: 15px; border-radius: 6px; margin: 15px 0; }
+                .message-box { background: #fff; border-left: 4px solid #1a73e8; padding: 15px; margin: 15px 0; }
+                .footer { margin-top: 20px; padding: 20px; background: #f1f1f1; text-align: center; border-radius: 5px; font-size: 12px; color: #666; }
+            </style>
+        </head>
+        <body>
+            <div class='header'>
+                <h1>" . COMPANY_NAME . " - New Inquiry</h1>
+            </div>
+            <div class='content'>
+                <p>Dear $ownerName,</p>
+                <p>You have received a new <strong>$typeLabel</strong> inquiry for your pet <strong>$petName</strong>.</p>
+                
+                <div class='sender-box'>
+                    <strong>From:</strong> $senderName<br>
+                    <strong>Email:</strong> $senderEmail<br>
+                    <strong>Phone:</strong> " . ($senderPhone ?: 'Not provided') . "
+                </div>
+                
+                <div class='message-box'>
+                    <strong>Message:</strong><br>
+                    " . nl2br(htmlspecialchars($message)) . "
+                </div>
+                
+                <p>You can reply directly to this email — your reply will go to <strong>$senderEmail</strong>.</p>
+                
+                <p>Best regards,<br>" . COMPANY_NAME . " Team</p>
+            </div>
+            <div class='footer'>
+                <p>This inquiry was sent through the Pila Pet Registration platform.</p>
+                <p>&copy; 2026 " . COMPANY_NAME . ". All rights reserved.</p>
+            </div>
+        </body>
+        </html>";
+
+        $textContent = "Dear $ownerName,\n\nYou received a $typeLabel inquiry for your pet $petName.\n\nFrom: $senderName\nEmail: $senderEmail\nPhone: " . ($senderPhone ?: 'Not provided') . "\n\nMessage:\n$message\n\nReply directly to $senderEmail.\n\n" . COMPANY_NAME . " Team";
+
+        return self::sendEmail($ownerEmail, $subject, $htmlContent, $textContent, $from, $senderEmail);
+    }
     
     private static function getVerificationEmailHTML($code) {
         return "
@@ -176,7 +230,7 @@ class EmailService {
         return COMPANY_NAME . " - Email Verification\n\nYour verification code is: $code\n\nThis code will expire in 1 hour.\n\nThis is an automated message.";
     }
     
-    private static function sendEmail($to, $subject, $htmlContent, $textContent, $from) {
+    private static function sendEmail($to, $subject, $htmlContent, $textContent, $from, $replyTo = null) {
         try {
             // Gmail SMTP via STARTTLS (port 587)
             $socket = fsockopen('tcp://' . MAIL_SERVER, MAIL_PORT, $errno, $errstr, 30);
@@ -263,7 +317,7 @@ class EmailService {
             $emailContent .= "Content-Type: multipart/alternative; boundary=\"$boundary\"\r\n";
             $emailContent .= "From: $from\r\n";
             $emailContent .= "To: $to\r\n";
-            $emailContent .= "Reply-To: " . MAIL_USERNAME . "\r\n";
+            $emailContent .= "Reply-To: " . ($replyTo ?: MAIL_USERNAME) . "\r\n";
             $emailContent .= "X-Mailer: PHP/" . phpversion() . "\r\n\r\n";
 
             // Text part

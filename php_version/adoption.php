@@ -34,6 +34,13 @@ try {
 } catch (Exception $e) {
     $userPets = [];
 }
+
+// Load current user for contact modal pre-fill
+$currentUser = getUserById($_SESSION['user_id']);
+if ($currentUser) {
+    $_SESSION['email'] = $currentUser['email'] ?? '';
+    $_SESSION['contact_number'] = $currentUser['contact_number'] ?? '';
+}
 ?>
 
 <?php include 'includes/header.php'; ?>
@@ -414,6 +421,22 @@ try {
         box-shadow: var(--shadow-md);
     }
 
+    .your-pet-indicator {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border-radius: var(--radius-lg, 18px);
+        padding: 10px 14px;
+        background: rgba(245, 158, 11, 0.15);
+        color: #92400e;
+        font-weight: 800;
+        font-size: 14px;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        text-align: center;
+    }
+
     .empty-state {
         text-align: center;
         padding: var(--spacing-3xl) var(--spacing-2xl);
@@ -730,17 +753,26 @@ try {
                             </div>
                         </div>
 
-                        <div class="pet-adoption-actions">
-                            <a href="user/adoption_application.php?pet_id=<?php echo $pet['id']; ?>" class="apply-btn">
-                                <i class="fas fa-heart"></i>
-                                Apply to Adopt
-                            </a>
+                           <div class="pet-adoption-actions">
+                               <?php if ((int)$pet['owner_id'] === (int)$_SESSION['user_id']): ?>
+                                   <div class="your-pet-indicator">
+                                       <i class="fas fa-user-check"></i>
+                                       This is your pet
+                                   </div>
+                               <?php else: ?>
+                                   <?php if (!isAdmin()): ?>
+                                       <a href="user/adoption_application.php?pet_id=<?php echo $pet['id']; ?>" class="apply-btn">
+                                           <i class="fas fa-heart"></i>
+                                           Apply to Adopt
+                                       </a>
+                                   <?php endif; ?>
 
-                            <button class="contact-btn" onclick="contactOwner('<?php echo htmlspecialchars($pet['owner_email']); ?>', '<?php echo htmlspecialchars($pet['name']); ?>')">
-                                <i class="fas fa-envelope"></i>
-                                Contact Owner
-                            </button>
-                        </div>
+                                   <button class="contact-btn" onclick="openContactModal(<?php echo $pet['id']; ?>, '<?php echo htmlspecialchars($pet['name'], ENT_QUOTES); ?>', 'adoption')">
+                                       <i class="fas fa-envelope"></i>
+                                       Contact Owner
+                                   </button>
+                               <?php endif; ?>
+                           </div>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -845,12 +877,6 @@ function closeOfferModal() {
     document.getElementById('adoptionForm').reset();
 }
 
-function contactOwner(email, petName) {
-    const subject = encodeURIComponent(`Adoption Inquiry: ${petName}`);
-    const body = encodeURIComponent(`Hello,\n\nI'm interested in adopting ${petName}. Please contact me to discuss the adoption process.\n\nBest regards,`);
-    window.open(`mailto:${email}?subject=${subject}&body=${body}`);
-}
-
 document.getElementById('adoptionForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
@@ -914,4 +940,5 @@ document.addEventListener('keydown', function(e) {
 });
 </script>
 
+<?php include 'includes/contact_owner_modal.php'; ?>
 <?php include 'includes/footer.php'; ?>
