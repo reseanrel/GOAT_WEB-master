@@ -521,6 +521,30 @@ try {
         border-radius: 0 0 var(--radius-xl) var(--radius-xl);
     }
 
+    .modal-control {
+        width: 100%;
+        padding: var(--spacing-md);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        font-family: inherit;
+        font-size: 15px;
+        box-sizing: border-box;
+        background: var(--color-bg);
+        color: var(--color-text);
+    }
+
+    .modal-control:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .modal-textarea {
+        resize: vertical;
+        min-height: 120px;
+        line-height: 1.5;
+    }
+
     .btn-cancel {
         background: var(--color-bg);
         color: var(--color-text);
@@ -534,6 +558,21 @@ try {
     .btn-cancel:hover {
         background: var(--color-text);
         color: var(--color-bg);
+    }
+
+    /* Offer modal - use page's warm amber to align with adoption branding */
+    #offerModal .modal-header {
+        background: #f59e0b;
+    }
+
+    #offerModal button[type="submit"] {
+        background: #f59e0b;
+    }
+
+    /* Modal primary action button hover */
+    #offerModal button[type="submit"]:hover {
+        background: #d97706;
+        transform: translateY(-1px);
     }
 
     /* Small screens */
@@ -754,13 +793,13 @@ try {
 <div class="modal-overlay" id="offerModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 class="modal-title">Offer Pet for Adoption</h3>
+            <h3 class="modal-title"><i class="fas fa-hand-holding-heart"></i> Offer Pet for Adoption</h3>
         </div>
         <form id="adoptionForm">
             <div class="modal-body">
                 <input type="hidden" id="modalPetId" name="pet_id">
                 <div style="margin-bottom: var(--spacing-lg);">
-                    <label style="display: block; margin-bottom: var(--spacing-md); font-weight: 600; color: var(--color-text);">
+                    <label style="display: block; margin-bottom: var(--spacing-md); font-weight: 800; color: var(--color-text);">
                         Select Your Pet
                     </label>
                     <select id="petSelect" class="modal-control" required>
@@ -773,7 +812,7 @@ try {
                     </select>
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: var(--spacing-md); font-weight: 600; color: var(--color-text);">
+                    <label style="display: block; margin-bottom: var(--spacing-md); font-weight: 800; color: var(--color-text);">
                         Adoption Details
                     </label>
                     <textarea name="comment" rows="4" class="modal-control modal-textarea" required
@@ -782,8 +821,8 @@ try {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="closeOfferModal()">Cancel</button>
-                <button type="submit" style="background: var(--color-primary); color: white; border: none; padding: var(--spacing-sm) var(--spacing-lg); border-radius: var(--radius-md); cursor: pointer;">
-                    Offer for Adoption
+                <button type="submit" style="color: white; border: none; padding: var(--spacing-sm) var(--spacing-lg); border-radius: var(--radius-md); cursor: pointer; font-weight: 800; display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-paw"></i> Offer for Adoption
                 </button>
             </div>
         </form>

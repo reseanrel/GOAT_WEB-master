@@ -546,15 +546,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             <?php foreach ($medicalRecords as $record): ?>
                 <div class="record-item">
                     <div class="record-header">
-                        <div class="record-type"><?php echo htmlspecialchars($record['record_type']); ?></div>
+                         <div class="record-type">
+                             <?php echo htmlspecialchars($record['record_type']); ?>
+                             <?php if (!empty($record['provider'])): ?>
+                                 <span style="font-size:11px; font-weight:400; color:var(--color-text-muted); margin-left:6px;">(<?php echo htmlspecialchars($record['provider']); ?>)</span>
+                             <?php endif; ?>
+                         </div>
                         <div class="record-date"><?php echo date('M j, Y', strtotime($record['record_date'])); ?></div>
                     </div>
-                    <div class="record-details">
-                        <?php echo nl2br(htmlspecialchars($record['description'] ?? 'No description provided')); ?>
-                        <?php if ($record['next_due_date']): ?>
-                            <br><strong>Next Due:</strong> <?php echo date('M j, Y', strtotime($record['next_due_date'])); ?>
-                        <?php endif; ?>
-                    </div>
+                     <div class="record-details">
+                         <?php echo nl2br(htmlspecialchars($record['description'] ?? 'No description provided')); ?>
+                         <?php if (!empty($record['provider'])): ?>
+                             <br><strong>Provider:</strong> <?php echo htmlspecialchars($record['provider']); ?>
+                         <?php endif; ?>
+                         <?php if ($record['next_due_date']): ?>
+                             <br><strong>Next Due:</strong> <?php echo date('M j, Y', strtotime($record['next_due_date'])); ?>
+                         <?php endif; ?>
+                         <?php if (!empty($record['photo_url'])): ?>
+                             <br><a href="../uploads/<?php echo htmlspecialchars($record['photo_url']); ?>" target="_blank" style="color: var(--color-primary); font-size: 13px; text-decoration: underline;">
+                                 <i class="fas fa-paperclip"></i> View Attachment
+                             </a>
+                         <?php endif; ?>
+                     </div>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
