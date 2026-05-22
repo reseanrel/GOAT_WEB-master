@@ -14,7 +14,8 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     is_admin TINYINT(1) DEFAULT 0,
     archived TINYINT(1) DEFAULT 0,
-    archived_at TIMESTAMP NULL
+    archived_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE pets (

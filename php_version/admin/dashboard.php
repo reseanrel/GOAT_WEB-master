@@ -99,37 +99,8 @@ try {
 
  // Initialize empty arrays for analytics
 $monthlyData = [];
-$userMonthlyData = [];
-$categoryData = [];
-$categoryWheelGradient = '';
-$categoryWheelSegments = [];
-$categoryPalette = ['#2563eb', '#16a34a', '#f59e0b', '#0ea5e9', '#db2777', '#7c3aed'];
-
-function buildCategoryWheelGradient(array $categoryData, int $totalApprovedPets, array $categoryPalette): array
-{
-    $segments = [];
-    $cursor = 0.0;
-
-    if ($totalApprovedPets <= 0) {
-        return ['', []];
-    }
-
-    foreach ($categoryData as $index => $category) {
-        $count = (int)($category['count'] ?? 0);
-        if ($count <= 0) {
-            continue;
-        }
-
-        $percentage = ($count / $totalApprovedPets) * 100;
-        $start = $cursor;
-        $cursor += $percentage;
-        $color = $categoryPalette[$index % count($categoryPalette)];
-
-        $segments[] = sprintf('%s %.2f%% %.2f%%', $color, $start, $cursor);
-    }
-
-    return [implode(', ', $segments), $segments];
-}
+    $userMonthlyData = [];
+    $categoryData = [];
 
 try {
     // Get monthly registrations for the last 12 months
@@ -170,10 +141,6 @@ try {
         LIMIT 5
     ");
     $categoryData = $stmt->fetchAll();
-
-    if (!empty($categoryData) && $totalApprovedPets > 0) {
-        [$categoryWheelGradient, $categoryWheelSegments] = buildCategoryWheelGradient($categoryData, (int)$totalApprovedPets, $categoryPalette);
-    }
 } catch (Exception $e) {
     // Database queries failed - use empty arrays
 }
@@ -699,49 +666,6 @@ try {
         border: 1px solid var(--color-border);
         margin-bottom: var(--spacing-lg);
     }
-
-    .category-item {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-xs);
-        padding: var(--spacing-md);
-        margin-bottom: var(--spacing-sm);
-        background: var(--color-bg-secondary);
-        border-radius: var(--radius-md);
-        border: 1px solid var(--color-border);
-    }
-
-    .category-item-row {
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: var(--spacing-md);
-    }
-
-    .category-bar {
-        height: 10px;
-        border-radius: 999px;
-        background: rgba(0,0,0,0.06);
-        overflow: hidden;
-    }
-
-    .category-bar-fill {
-        height: 100%;
-        background: var(--color-primary);
-        border-radius: 999px;
-    }
-
-    .category-name {
-        font-weight: 500;
-        color: var(--color-text);
-    }
-
-    .category-count {
-        font-size: 18px;
-        font-weight: 600;
-        color: var(--color-primary);
-    }
  
     @media (max-width: 1024px) {
         .analytics-grid {
@@ -1114,49 +1038,19 @@ try {
                             <i class="fas fa-chart-pie"></i>
                             Pet Categories
                         </h3>
-                        <p style="margin: 0; color: rgba(17,24,39,0.62); font-weight: 650; font-size: 13px; line-height: 1.5;">
-                            Category wheel chart showing the approved pet distribution.
+                        <p style="margin: 0; color: rgba(17,24,39,0.62); font-weight: 650; font-size: 13px;">
+                            Hover over the donut to see detailed statistics.
                         </p>
                     </div>
 
-                    <?php if (empty($categoryData) || empty($categoryWheelGradient)): ?>
-                        <div style="text-align: center; padding: var(--spacing-xl); color: var(--color-text-secondary);">
-                            <i class="fas fa-chart-pie fa-2x" style="opacity: 0.5; margin-bottom: var(--spacing-md);"></i>
-                            <p>No category data available</p>
+                    <?php if (empty($categoryData)): ?>
+                        <div style="text-align: center; padding: 40px; color: var(--color-text-secondary);">
+                            <i class="fas fa-chart-pie fa-2x" style="opacity: 0.4; margin-bottom: 12px;"></i>
+                            <p style="margin:0;">No category data available yet.</p>
                         </div>
                     <?php else: ?>
-                        <div style="display: grid; grid-template-columns: minmax(180px, 260px) 1fr; gap: var(--spacing-lg); align-items: center;">
-                            <div style="display: flex; justify-content: center;">
-                                <div style="position: relative; width: 230px; height: 230px;">
-                                    <div style="width: 100%; height: 100%; border-radius: 50%; background: conic-gradient(from 0deg, <?php echo htmlspecialchars($categoryWheelGradient, ENT_QUOTES, 'UTF-8'); ?>); box-shadow: inset 0 0 0 8px rgba(255,255,255,0.92), 0 12px 30px rgba(0,0,0,0.08);"></div>
-                                    <div style="position: absolute; inset: 50%; transform: translate(-50%, -50%); width: 108px; height: 108px; border-radius: 50%; background: rgba(255,255,255,0.98); border: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.06);">
-                                        <div style="font-size: 24px; font-weight: 1000; color: var(--color-primary); line-height: 1;"><?php echo (int)$totalApprovedPets; ?></div>
-                                        <div style="font-size: 11px; font-weight: 800; color: rgba(17,24,39,0.62); text-transform: uppercase; letter-spacing: 0.6px; margin-top: 4px;">Approved Pets</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div style="display: grid; gap: 10px;">
-                                <?php foreach ($categoryData as $index => $category): ?>
-                                    <?php
-                                        $categoryCount = (int)$category['count'];
-                                        $percent = $totalApprovedPets > 0 ? round(($categoryCount / $totalApprovedPets) * 100, 1) : 0;
-                                        $segmentColor = $categoryPalette[$index % count($categoryPalette)];
-                                    ?>
-                                    <div class="category-item">
-                                        <div class="category-item-row">
-                                            <span class="category-name" style="display:flex; align-items:center; gap:10px;">
-                                                <span style="width:12px; height:12px; border-radius:50%; background: <?php echo htmlspecialchars($segmentColor, ENT_QUOTES, 'UTF-8'); ?>; display:inline-block;"></span>
-                                                <?php echo htmlspecialchars(ucfirst($category['category'])); ?>
-                                            </span>
-                                            <span class="category-count"><?php echo $categoryCount; ?> (<?php echo $percent; ?>%)</span>
-                                        </div>
-                                        <div class="category-bar">
-                                            <div class="category-bar-fill" style="width: <?php echo $percent; ?>%; background: <?php echo htmlspecialchars($segmentColor, ENT_QUOTES, 'UTF-8'); ?>;"></div>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
+                        <div style="display: flex; justify-content: center; padding: 15px 0 10px;">
+                            <canvas id="categoryDonutChart" width="240" height="240"></canvas>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -1396,5 +1290,50 @@ function switchChart(type) {
 // Initialize chart on page load
 document.addEventListener('DOMContentLoaded', function() {
     createChart('pet');
+
+    // Pet Categories Donut Chart with hover tooltips
+    const donutCanvas = document.getElementById('categoryDonutChart');
+    if (donutCanvas && categoryData && categoryData.length > 0) {
+        const ctx = donutCanvas.getContext('2d');
+        const labels = categoryData.map(item => item.category);
+        const values = categoryData.map(item => parseInt(item.count || 0));
+        const colors = ['#2563eb', '#16a34a', '#f59e0b', '#0ea5e9', '#db2777', '#7c3aed', '#8b5cf6'];
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderWidth: 3,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: false,
+                maintainAspectRatio: false,
+                cutout: '62%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        titleFont: { size: 13, weight: 700 },
+                        bodyFont: { size: 13 },
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const value = context.raw;
+                                const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return `${context.label}: ${value} (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 });
 </script>

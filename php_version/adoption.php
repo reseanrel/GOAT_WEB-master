@@ -6,7 +6,28 @@ requireLogin();
 $db = Database::getInstance();
 $conn = $db->getConnection();
 
-// Get pets available for adoption
+// Pagination setup for Available Adoption Pets
+$perPage = 15;
+$currentPage = max(1, (int)($_GET['page'] ?? 1));
+
+// Count total adoption pets
+try {
+    $countSql = "
+        SELECT COUNT(*) FROM pets p
+        WHERE p.available_for_adoption = 1 AND p.archived = 0 AND p.status = 'approved' AND p.deceased = 0
+    ";
+    $totalAdoption = (int)$conn->query($countSql)->fetchColumn();
+    $totalPages = max(1, (int)ceil($totalAdoption / $perPage));
+    $currentPage = min($currentPage, $totalPages);
+    $offset = ($currentPage - 1) * $perPage;
+} catch (Exception $e) {
+    $totalAdoption = 0;
+    $totalPages = 1;
+    $currentPage = 1;
+    $offset = 0;
+}
+
+// Get paged adoption pets
 try {
     $stmt = $conn->prepare("
         SELECT p.*, p.photo_url AS photo_path, u.full_name as owner_name, u.email as owner_email,
@@ -15,11 +36,16 @@ try {
         JOIN users u ON p.owner_id = u.id
         WHERE p.available_for_adoption = 1 AND p.archived = 0 AND p.status = 'approved' AND p.deceased = 0
         ORDER BY p.registered_on DESC
+        LIMIT :limit OFFSET :offset
     ");
+    $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
     $adoptionPets = $stmt->fetchAll();
 } catch (Exception $e) {
     $adoptionPets = [];
+    $totalAdoption = 0;
+    $totalPages = 1;
 }
 
 // Get user's pets that could be put up for adoption
@@ -48,7 +74,7 @@ if ($currentUser) {
 <style>
     /* Adoption - warm modern rescue UI (image-first cards) */
     .adoption {
-        max-width: 1200px;
+        max-width: 1320px;
         margin: 0 auto;
         padding: var(--spacing-lg);
     }
@@ -216,21 +242,35 @@ if ($currentUser) {
 
     .adoption-pets-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: var(--spacing-lg);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
         align-items: stretch;
+    }
+
+    @media (min-width: 768px) {
+        .adoption-pets-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .adoption-pets-grid {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
+        }
     }
 
     .pet-adoption-card {
         background: rgba(255,255,255,0.92);
         border: 1px solid rgba(0,0,0,0.06);
-        border-radius: var(--radius-xl, 20px);
+        border-radius: 16px;
         overflow: hidden;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.04);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.05);
         transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
         display: flex;
         flex-direction: column;
-        min-height: 480px;
+        min-height: 320px;
     }
 
     .pet-adoption-card:hover {
@@ -240,7 +280,7 @@ if ($currentUser) {
     }
 
     .pet-adoption-media {
-        height: 210px;
+        height: 128px;
         position: relative;
         background: #fff;
     }
@@ -260,33 +300,33 @@ if ($currentUser) {
         justify-content: center;
         background: rgba(17,24,39,0.03);
         color: rgba(17,24,39,0.45);
-        font-size: 52px;
+        font-size: 32px;
     }
 
     /* badges */
     .status-badge {
         position: absolute;
-        top: 14px;
-        right: 14px;
-        padding: 8px 12px;
+        top: 8px;
+        right: 8px;
+        padding: 4px 8px;
         border-radius: 999px;
-        font-size: 12px;
+        font-size: 10px;
         font-weight: 1000;
         letter-spacing: 0.3px;
         color: #fff;
         background: #f59e0b;
-        box-shadow: 0 10px 20px rgba(245,158,11,0.18);
+        box-shadow: 0 6px 12px rgba(245,158,11,0.18);
         text-transform: uppercase;
         border: 1px solid rgba(255,255,255,0.18);
     }
 
     .pet-type-pill {
         position: absolute;
-        top: 14px;
-        left: 14px;
-        padding: 8px 12px;
+        top: 8px;
+        left: 8px;
+        padding: 4px 8px;
         border-radius: 999px;
-        font-size: 12px;
+        font-size: 10px;
         font-weight: 1000;
         letter-spacing: 0.2px;
         color: #0f172a;
@@ -312,54 +352,54 @@ if ($currentUser) {
     }
 
     .pet-adoption-body {
-        padding: var(--spacing-lg);
+        padding: 12px;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 6px;
         flex: 1;
     }
 
     .pet-adoption-name {
-        font-size: 18px;
+        font-size: 15px;
         font-weight: 1000;
         color: rgba(17,24,39,0.95);
         margin: 0;
-        line-height: 1.2;
+        line-height: 1.15;
     }
 
     .pet-adoption-brief {
         margin: 0;
         color: rgba(17,24,39,0.62);
         font-weight: 750;
-        font-size: 13px;
-        line-height: 1.5;
+        font-size: 11px;
+        line-height: 1.35;
     }
 
     .adoption-meta {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 8px 12px;
-        margin-top: 6px;
+        gap: 6px 8px;
+        margin-top: 4px;
     }
 
     .meta-item {
         border: 1px solid rgba(0,0,0,0.05);
         background: rgba(255,255,255,0.65);
-        border-radius: 14px;
-        padding: 8px 10px;
+        border-radius: 10px;
+        padding: 5px 8px;
     }
 
     .meta-label {
-        font-size: 11px;
+        font-size: 9px;
         font-weight: 1000;
         color: rgba(17,24,39,0.55);
         text-transform: uppercase;
         letter-spacing: .3px;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
     }
 
     .meta-value {
-        font-size: 13px;
+        font-size: 11px;
         font-weight: 900;
         color: rgba(17,24,39,0.9);
         white-space: nowrap;
@@ -369,10 +409,10 @@ if ($currentUser) {
 
     .pet-adoption-actions {
         margin-top: auto;
-        padding-top: var(--spacing-md);
+        padding-top: 8px;
         border-top: 1px solid rgba(0,0,0,0.06);
         display: grid;
-        gap: 10px;
+        gap: 6px;
     }
 
     .apply-btn {
@@ -380,16 +420,51 @@ if ($currentUser) {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
-        border-radius: var(--radius-lg, 18px);
-        padding: 12px 14px;
+        gap: 6px;
+        border-radius: 12px;
+        padding: 8px 10px;
         background: #111827;
         color: #fff;
         text-decoration: none;
         font-weight: 1000;
+        font-size: 12px;
         border: 1px solid rgba(0,0,0,0.08);
         cursor: pointer;
         transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .contact-btn {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border-radius: 12px;
+        padding: 8px 10px;
+        background: rgba(255,255,255,0.7);
+        color: rgba(17,24,39,0.9);
+        text-decoration: none;
+        font-weight: 1000;
+        font-size: 12px;
+        border: 1px solid rgba(0,0,0,0.08);
+        cursor: pointer;
+        transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .your-pet-indicator {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        border-radius: 10px;
+        padding: 6px 10px;
+        background: rgba(245, 158, 11, 0.15);
+        color: #92400e;
+        font-weight: 800;
+        font-size: 12px;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        text-align: center;
     }
 
     .apply-btn:hover {
@@ -398,65 +473,32 @@ if ($currentUser) {
         box-shadow: var(--shadow-md);
     }
 
-    .contact-btn {
-        width: 100%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        border-radius: var(--radius-lg, 18px);
-        padding: 11px 14px;
-        background: rgba(255,255,255,0.7);
-        color: rgba(17,24,39,0.9);
-        text-decoration: none;
-        font-weight: 1000;
-        border: 1px solid rgba(0,0,0,0.08);
-        cursor: pointer;
-        transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
-    }
-
     .contact-btn:hover {
         transform: translateY(-2px);
         background: rgba(255,255,255,0.92);
         box-shadow: var(--shadow-md);
     }
 
-    .your-pet-indicator {
-        width: 100%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        border-radius: var(--radius-lg, 18px);
-        padding: 10px 14px;
-        background: rgba(245, 158, 11, 0.15);
-        color: #92400e;
-        font-weight: 800;
-        font-size: 14px;
-        border: 1px solid rgba(245, 158, 11, 0.3);
-        text-align: center;
-    }
-
     .empty-state {
         text-align: center;
-        padding: var(--spacing-3xl) var(--spacing-2xl);
+        padding: var(--spacing-xl) var(--spacing-lg);
         background: rgba(255,255,255,0.7);
         border: 2px dashed rgba(0,0,0,0.12);
-        border-radius: var(--radius-xl, 20px);
+        border-radius: 16px;
         grid-column: 1 / -1;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.03);
     }
 
     .empty-state .empty-icon {
-        font-size: 64px;
+        font-size: 48px;
         color: rgba(17,24,39,0.40);
-        margin-bottom: var(--spacing-lg);
+        margin-bottom: var(--spacing-md);
     }
 
     .empty-state h3 {
-        font-size: 22px;
+        font-size: 18px;
         font-weight: 1000;
-        margin: 0 0 var(--spacing-md);
+        margin: 0 0 var(--spacing-sm);
         color: rgba(17,24,39,0.95);
     }
 
@@ -464,6 +506,56 @@ if ($currentUser) {
         margin: 0;
         color: rgba(17,24,39,0.62);
         font-weight: 750;
+    }
+
+    /* Pagination - modern compact dashboard style (adoption amber theme) */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 4px;
+        margin: 24px auto 0;
+        flex-wrap: wrap;
+    }
+    .pagination .page-link,
+    .pagination .page-ellipsis {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 10px;
+        font-size: 13px;
+        font-weight: 700;
+        border-radius: 10px;
+        border: 1px solid rgba(0,0,0,0.08);
+        background: #fff;
+        color: #374151;
+        text-decoration: none;
+        transition: all .12s ease;
+    }
+    .pagination .page-link:hover {
+        background: #fffbeb;
+        border-color: #fcd34d;
+        transform: translateY(-1px);
+    }
+    .pagination .page-link.active {
+        background: #d97706;
+        color: #fff;
+        border-color: #b45309;
+        box-shadow: 0 2px 6px rgba(217,119,6,0.25);
+    }
+    .pagination .page-ellipsis {
+        border: none;
+        background: transparent;
+        min-width: 20px;
+        color: #9ca3af;
+        font-weight: 600;
+    }
+    .pagination .prev,
+    .pagination .next {
+        font-weight: 800;
+        padding: 0 14px;
     }
 
     /* Modal */
@@ -654,7 +746,7 @@ if ($currentUser) {
                     <i class="fas fa-heart"></i>
                     Available pets
                 </div>
-                <div class="value"><?php echo (int)count($adoptionPets); ?></div>
+                    <div class="value"><?php echo (int)$totalAdoption; ?></div>
                 <div class="hint">Ready for loving homes in our community.</div>
             </div>
         </div>
@@ -776,11 +868,37 @@ if ($currentUser) {
                     </div>
                 </div>
             <?php endforeach; ?>
-        <?php endif; ?>
-    </div>
-</div>
+         <?php endif; ?>
+     </div>
 
-<!-- Information Modal -->
+     <?php if ($totalAdoption > 0 && $totalPages > 1): ?>
+     <div class="pagination" aria-label="Pagination for adoption pets">
+         <?php if ($currentPage > 1): ?>
+             <a href="?page=<?= $currentPage - 1 ?>" class="page-link prev">← Prev</a>
+         <?php endif; ?>
+
+         <?php
+         $start = max(1, $currentPage - 2);
+         $end = min($totalPages, $currentPage + 2);
+         if ($start > 1) echo '<span class="page-ellipsis">…</span>';
+         for ($i = $start; $i <= $end; $i++) {
+             if ($i === $currentPage) {
+                 echo '<span class="page-link active">' . $i . '</span>';
+             } else {
+                 echo '<a href="?page=' . $i . '" class="page-link">' . $i . '</a>';
+             }
+         }
+         if ($end < $totalPages) echo '<span class="page-ellipsis">…</span>';
+         ?>
+
+         <?php if ($currentPage < $totalPages): ?>
+             <a href="?page=<?= $currentPage + 1 ?>" class="page-link next">Next →</a>
+         <?php endif; ?>
+     </div>
+     <?php endif; ?>
+ </div>
+ 
+ <!-- Information Modal -->
 <div class="modal-overlay" id="adoptionInfoModal">
     <div class="modal-content">
         <div class="modal-header">

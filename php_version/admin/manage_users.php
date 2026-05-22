@@ -60,11 +60,27 @@ if (!empty($search)) {
     $params[] = $searchTerm;
 }
 
-$query .= " ORDER BY full_name ASC";
+    $query .= " ORDER BY full_name ASC";
 
-$stmt = $conn->prepare($query);
-$stmt->execute($params);
-$users = $stmt->fetchAll();
+    // Pagination
+    $perPage = 15;
+    $currentPage = max(1, (int)($_GET['page'] ?? 1));
+    $offset = ($currentPage - 1) * $perPage;
+
+    // Total count for pagination
+    $countQuery = preg_replace('/^SELECT \* FROM users/', 'SELECT COUNT(*) FROM users', $query);
+    $countQuery = preg_replace('/ ORDER BY .*$/', '', $countQuery);
+    $countStmt = $conn->prepare($countQuery);
+    $countStmt->execute($params);
+    $totalUsers = (int)$countStmt->fetchColumn();
+    $totalPages = max(1, (int)ceil($totalUsers / $perPage));
+
+    // Apply limit
+    $query .= " LIMIT $perPage OFFSET $offset";
+
+    $stmt = $conn->prepare($query);
+    $stmt->execute($params);
+    $users = $stmt->fetchAll();
 
 // Get statistics
 $stats = [
@@ -237,6 +253,34 @@ $stats = [
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        <?php endif; ?>
+
+        <?php if ($totalPages > 1): ?>
+        <div class="pagination" style="margin: 20px 0 10px; display:flex; justify-content:center; gap:6px; flex-wrap:wrap;">
+            <?php
+            $qs = $_GET;
+            $qs['status'] = $status;
+            $qs['search'] = $search;
+
+            if ($currentPage > 1) {
+                $qs['page'] = $currentPage - 1;
+                echo '<a href="?' . htmlspecialchars(http_build_query($qs)) . '" class="btn-action">« Prev</a>';
+            }
+
+            $start = max(1, $currentPage - 3);
+            $end = min($totalPages, $currentPage + 3);
+            for ($i = $start; $i <= $end; $i++) {
+                $qs['page'] = $i;
+                $active = ($i === $currentPage) ? ' style="background:#1a73e8;color:#fff;border-color:#1a73e8;"' : '';
+                echo '<a href="?' . htmlspecialchars(http_build_query($qs)) . '" class="btn-action"' . $active . '>' . $i . '</a>';
+            }
+
+            if ($currentPage < $totalPages) {
+                $qs['page'] = $currentPage + 1;
+                echo '<a href="?' . htmlspecialchars(http_build_query($qs)) . '" class="btn-action">Next »</a>';
+            }
+            ?>
+        </div>
         <?php endif; ?>
     </div>
 </div>
