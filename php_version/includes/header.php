@@ -437,6 +437,8 @@
     <?php
         $lostAttentionCount = 0;
         $adoptionAttentionCount = 0;
+        $pendingPetsCount = 0;
+        $newUsersCount = 0;
 
         $userLostCount = 0;
         $userAdoptionCount = 0;
@@ -465,6 +467,24 @@
                 ");
                 $stmt->execute();
                 $adoptionAttentionCount = (int)($stmt->fetch()['cnt'] ?? 0);
+
+                $stmt = $conn->prepare("
+                    SELECT COUNT(*) AS cnt
+                    FROM pets
+                    WHERE archived = 0 AND status = 'pending'
+                ");
+                $stmt->execute();
+                $pendingPetsCount = (int)($stmt->fetch()['cnt'] ?? 0);
+
+                $stmt = $conn->prepare("
+                    SELECT COUNT(*) AS cnt
+                    FROM users
+                    WHERE is_admin = 0 
+                      AND archived = 0
+                      AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                ");
+                $stmt->execute();
+                $newUsersCount = (int)($stmt->fetch()['cnt'] ?? 0);
             } else {
                 $stmt = $conn->prepare("
                     SELECT COUNT(*) AS cnt
@@ -558,7 +578,7 @@
                                     justify-content:center;
                                     box-shadow: var(--shadow-sm);
                                 ">
-                                    <?php echo (int)$lostAttentionCount + (int)$adoptionAttentionCount; ?>
+                                     <?php echo (int)$lostAttentionCount + (int)$adoptionAttentionCount + (int)$pendingPetsCount + (int)$newUsersCount; ?>
                                 </span>
                             </button>
 
@@ -593,11 +613,27 @@
                                         <div class="notification-dropdown-title" style="font-weight: 800; color: var(--color-text); font-size: 14px;">Adoption applications</div>
                                         <div class="notification-dropdown-sub" style="font-size: 13px; color: var(--color-text-secondary); font-weight: 600;"><?php echo (int)$adoptionAttentionCount; ?> pending review</div>
                                     </div>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                <?php else: ?>
+                                 </a>
+
+                                 <a class="notification-dropdown-item" href="/admin/manage_pets.php?status=pending" style="display:flex; align-items:flex-start; gap: 12px; padding: 12px 12px; border-radius: var(--radius-lg); text-decoration:none; color: var(--color-text); transition: background-color 0.15s ease;">
+                                     <i class="fas fa-paw" style="color: #f59e0b;"></i>
+                                     <div class="notification-dropdown-text" style="display:flex; flex-direction:column; gap: 2px; min-width: 0;">
+                                         <div class="notification-dropdown-title" style="font-weight: 800; color: var(--color-text); font-size: 14px;">Pending Pet Approvals</div>
+                                         <div class="notification-dropdown-sub" style="font-size: 13px; color: var(--color-text-secondary); font-weight: 600;"><?php echo (int)$pendingPetsCount; ?> awaiting review</div>
+                                     </div>
+                                 </a>
+
+                                 <a class="notification-dropdown-item" href="/admin/manage_users.php" style="display:flex; align-items:flex-start; gap: 12px; padding: 12px 12px; border-radius: var(--radius-lg); text-decoration:none; color: var(--color-text); transition: background-color 0.15s ease;">
+                                     <i class="fas fa-user-plus" style="color: #10b981;"></i>
+                                     <div class="notification-dropdown-text" style="display:flex; flex-direction:column; gap: 2px; min-width: 0;">
+                                         <div class="notification-dropdown-title" style="font-weight: 800; color: var(--color-text); font-size: 14px;">New User Registrations</div>
+                                         <div class="notification-dropdown-sub" style="font-size: 13px; color: var(--color-text-secondary); font-weight: 600;"><?php echo (int)$newUsersCount; ?> in last 7 days</div>
+                                     </div>
+                                 </a>
+                             </div>
+                         </div>
+                     </div>
+                 <?php else: ?>
                     <div style="display:flex; align-items:center; gap: var(--spacing-md);">
                         <?php $totalUserNotifications = (int)$userLostCount + (int)$userAdoptionCount; ?>
 
