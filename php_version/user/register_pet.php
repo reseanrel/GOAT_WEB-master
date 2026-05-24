@@ -8,6 +8,12 @@ if (isAdmin()) {
     exit();
 }
 
+if (!isResidencyVerified()) {
+    $_SESSION['error'] = 'You must complete residency verification before registering a pet.';
+    header('Location: dashboard.php');
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = sanitizeInput($_POST['pet_name']);
     $category = sanitizeInput($_POST['pet_category']);
@@ -27,14 +33,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Pet category is required';
     }
 
+    $uploadedPhotoPath = null;
+    if (isset($_FILES['pet_photo']) && is_array($_FILES['pet_photo'])) {
+        if (isset($_FILES['pet_photo']['error']) && $_FILES['pet_photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+            if ($_FILES['pet_photo']['error'] !== UPLOAD_ERR_OK) {
+                $errors[] = 'Photo upload failed. Please try again.';
+            } else {
+                $tmpPath = $_FILES['pet_photo']['tmp_name'];
+                $originalName = (string)($_FILES['pet_photo']['name'] ?? '');
+                $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+                $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+                if (!in_array($extension, $allowedExtensions, true)) {
+                    $errors[] = 'Unsupported photo type. Allowed: jpg, jpeg, png, webp, gif.';
+                }
+                $maxSizeBytes = 16 * 1024 * 1024;
+                $sizeBytes = (int)($_FILES['pet_photo']['size'] ?? 0);
+                if ($sizeBytes <= 0) {
+                    $errors[] = 'Invalid photo file.';
+                } elseif ($sizeBytes > $maxSizeBytes) {
+                    $errors[] = 'Photo is too large (max 16MB).';
+                }
+                if (empty($errors)) {
+                    $uploadsDir = dirname(__DIR__) . '/uploads';
+                    if (!is_dir($uploadsDir)) {
+                        if (!mkdir($uploadsDir, 0755, true) && !is_dir($uploadsDir)) {
+                            $errors[] = 'Server error: uploads directory unavailable.';
+                        }
+                    }
+                    if (empty($errors) && is_dir($uploadsDir) && is_uploaded_file($tmpPath)) {
+                        $newFileName = 'pet_' . $_SESSION['user_id'] . '_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
+                        $destination = $uploadsDir . DIRECTORY_SEPARATOR . $newFileName;
+                        if (move_uploaded_file($tmpPath, $destination)) {
+                            $uploadedPhotoPath = $newFileName;
+                        } else {
+                            $errors[] = 'Server error: could not save the uploaded photo.';
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     if (empty($errors)) {
         $db = Database::getInstance();
         $conn = $db->getConnection();
 
         try {
             $stmt = $conn->prepare("
-                INSERT INTO pets (name, category, pet_type, age, color, gender, owner_id, available_for_adoption, status, registered_on)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+                INSERT INTO pets (name, category, pet_type, age, color, gender, owner_id, photo_url, available_for_adoption, status, registered_on)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
             ");
             $stmt->execute([
                 $name,
@@ -44,10 +91,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $color,
                 $gender,
                 $_SESSION['user_id'],
+                $uploadedPhotoPath,
                 $availableForAdoption
             ]);
 
-            $_SESSION['success'] = "Pet '$name' registered successfully and is pending admin approval!";
+            $_SESSION['success'] = $uploadedPhotoPath
+                ? "Pet '$name' registered with photo and is pending admin approval!"
+                : "Pet '$name' registered successfully and is pending admin approval!";
             header('Location: dashboard.php');
             exit();
         } catch (Exception $e) {
@@ -212,6 +262,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         font-size: 13px;
         color: var(--color-text-muted, #80868b);
     }
+
+    .photo-upload-section {
+        margin-bottom: 16px;
+    }
+    .photo-upload-section label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-text-secondary, #5f6368);
+    }
+    .photo-upload-row {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+    }
+    .photo-preview-box {
+        width: 120px;
+        height: 120px;
+        border: 1px dashed var(--color-border, #e8eaed);
+        border-radius: 12px;
+        background: #fafafa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .photo-preview-box i {
+        font-size: 42px;
+        color: #ccc;
+    }
 </style>
 
 <div class="register-page">
@@ -222,7 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="page-card__body">
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 <div class="form-grid">
                     <div class="form-field">
                         <label for="pet_name">Pet Name <span class="req">*</span></label>
@@ -278,6 +360,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
 
+                <div class="photo-upload-section">
+                    <label>Pet Photo <span style="font-weight:400;color:var(--color-text-muted,#80868b);">(optional)</span></label>
+                    <div class="photo-upload-row">
+                        <div class="photo-preview-box" id="photoPreviewBox">
+                            <i class="fas fa-paw" id="previewIcon"></i>
+                            <img id="photoPreview" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:8px;" alt="Photo preview">
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <input type="file" id="pet_photo" name="pet_photo" accept="image/*" class="form-control" style="padding:8px 10px;">
+                            <div class="hint" style="margin-top:4px;">JPG, PNG, WEBP, GIF up to 16MB</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="checkbox-row">
                     <input type="checkbox" id="for_adoption" name="for_adoption">
                     <label for="for_adoption" style="margin: 0; font-size: 14px; font-weight: 600; color: var(--color-text-secondary, #5f6368);">
@@ -315,6 +411,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!ok) e.preventDefault();
     });
+
+    const photoInput = document.getElementById('pet_photo');
+    const previewImg = document.getElementById('photoPreview');
+    const previewIcon = document.getElementById('previewIcon');
+    const previewBox = document.getElementById('photoPreviewBox');
+    if (photoInput && previewImg && previewIcon && previewBox) {
+        photoInput.addEventListener('change', function () {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    previewImg.src = ev.target.result;
+                    previewImg.style.display = 'block';
+                    previewIcon.style.display = 'none';
+                    previewBox.style.borderStyle = 'solid';
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
 </script>
 
 <?php include '../includes/footer.php'; ?>

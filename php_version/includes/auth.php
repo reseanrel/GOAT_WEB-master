@@ -133,10 +133,9 @@ function getUserResidencyInfo($userId) {
  * Get the best available photo source for a pet.
  * Falls back to category-specific default images if no custom photo.
  */
-function getPetPhotoSrc($pet) {
+function getPetPhotoSrc($pet, $useDefaults = true) {
     $baseUploads = dirname(__DIR__) . '/uploads/';
 
-    // 1. Custom uploaded photo
     if (!empty($pet['photo_path']) || !empty($pet['photo_url'])) {
         $filename = $pet['photo_path'] ?? $pet['photo_url'];
         $fullPath = $baseUploads . $filename;
@@ -146,25 +145,23 @@ function getPetPhotoSrc($pet) {
         }
     }
 
-    // 2. Category-based default images (user provided these)
-    $category = strtolower(trim($pet['category'] ?? ''));
-
-    $defaultImages = [
-        'dog'   => 'defaults/dog.png',
-        'cat'   => 'defaults/cat.png',
-        'bird'  => 'defaults/bird.png',
-        'birds' => 'defaults/bird.png',
-        'fish'  => 'defaults/fish.png',
-    ];
-
-    if (isset($defaultImages[$category])) {
-        $defaultFile = $defaultImages[$category];
-        if (file_exists($baseUploads . $defaultFile)) {
-            return '../uploads/' . $defaultFile;
+    if ($useDefaults) {
+        $category = strtolower(trim($pet['category'] ?? ''));
+        $defaultImages = [
+            'dog'   => 'defaults/dog.png',
+            'cat'   => 'defaults/cat.png',
+            'bird'  => 'defaults/bird.png',
+            'birds' => 'defaults/bird.png',
+            'fish'  => 'defaults/fish.png',
+        ];
+        if (isset($defaultImages[$category])) {
+            $defaultFile = $defaultImages[$category];
+            if (file_exists($baseUploads . $defaultFile)) {
+                return '../uploads/' . $defaultFile;
+            }
         }
     }
 
-    // 3. No image available → return null (caller will show paw icon)
     return null;
 }
 ?>

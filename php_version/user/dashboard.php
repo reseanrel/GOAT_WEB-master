@@ -10,9 +10,9 @@ if (isAdmin()) {
 
 $userPets = getUserPets($_SESSION['user_id']);
 
-// Residency status for banner
 $residentStatus = getResidencyStatus($_SESSION['user_id']);
 $showResidencyBanner = !in_array($residentStatus, ['verified']);
+$canRegisterPet = ($residentStatus === 'verified');
 ?>
 
 <?php include '../includes/header.php'; ?>
@@ -499,10 +499,17 @@ $adoptionPets = $stmt->fetch()['total'];
                 </p>
 
                 <div class="dashboard-hero-actions">
+                    <?php if ($canRegisterPet): ?>
                     <a href="register_pet.php" class="btn-primary-cta">
                         <i class="fas fa-plus"></i>
                         Register New Pet
                     </a>
+                    <?php else: ?>
+                    <a href="verify_residency.php" class="btn-primary-cta" style="background:#1a73e8;">
+                        <i class="fas fa-id-card"></i>
+                        Verify to Register Pets
+                    </a>
+                    <?php endif; ?>
 
                     <a href="manage_adoption_applications.php" class="btn-secondary-cta">
                         <i class="fas fa-clipboard-list"></i>
@@ -577,10 +584,17 @@ $adoptionPets = $stmt->fetch()['total'];
             </div>
             <h2 class="empty-state-title">No pets registered yet</h2>
             <p class="empty-state-text">Start building your pet family by registering your first companion!</p>
+            <?php if ($canRegisterPet): ?>
             <a href="register_pet.php" class="btn-primary-cta" style="margin:0 auto; width: auto; min-width: 240px;">
                 <i class="fas fa-plus"></i>
                 Register Your First Pet
             </a>
+            <?php else: ?>
+            <a href="verify_residency.php" class="btn-primary-cta" style="margin:0 auto; width: auto; min-width: 240px; background:#1a73e8;">
+                <i class="fas fa-id-card"></i>
+                Verify Residency to Register
+            </a>
+            <?php endif; ?>
         </div>
     <?php else: ?>
         <div class="pets-grid">
