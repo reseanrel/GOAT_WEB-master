@@ -80,4 +80,91 @@ function getUserPets($userId) {
     $stmt->execute([$userId]);
     return $stmt->fetchAll();
 }
+
+function getResidencyStatus($userId = null) {
+    if ($userId === null) {
+        $userId = $_SESSION['user_id'] ?? 0;
+    }
+    if (!$userId) return 'unverified';
+
+    $db = Database::getInstance();
+    $conn = $db->getConnection();
+
+    try {
+        $stmt = $conn->prepare("SELECT residency_status FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+        return $row && !empty($row['residency_status']) ? $row['residency_status'] : 'unverified';
+    } catch (PDOException $e) {
+        // Column doesn't exist yet (migration not run) — safe default
+        return 'unverified';
+    }
+}
+
+function isResidencyVerified($userId = null) {
+    return getResidencyStatus($userId) === 'verified';
+}
+
+function getUserResidencyInfo($userId) {
+    $db = Database::getInstance();
+    $conn = $db->getConnection();
+
+    try {
+        $stmt = $conn->prepare("
+            SELECT residency_status, residency_document, residency_rejection_reason,
+                   residency_verified_at, residency_verified_by
+            FROM users WHERE id = ?
+        ");
+        $stmt->execute([$userId]);
+        return $stmt->fetch();
+    } catch (PDOException $e) {
+        // Migration not run yet — return safe empty structure
+        return [
+            'residency_status' => 'unverified',
+            'residency_document' => null,
+            'residency_rejection_reason' => null,
+            'residency_verified_at' => null,
+            'residency_verified_by' => null
+        ];
+    }
+}
+
+/**
+ * Get the best available photo source for a pet.
+ * Falls back to category-specific default images if no custom photo.
+ */
+function getPetPhotoSrc($pet) {
+    $baseUploads = dirname(__DIR__) . '/uploads/';
+
+    // 1. Custom uploaded photo
+    if (!empty($pet['photo_path']) || !empty($pet['photo_url'])) {
+        $filename = $pet['photo_path'] ?? $pet['photo_url'];
+        $fullPath = $baseUploads . $filename;
+
+        if (file_exists($fullPath)) {
+            return '../uploads/' . htmlspecialchars($filename, ENT_QUOTES, 'UTF-8');
+        }
+    }
+
+    // 2. Category-based default images (user provided these)
+    $category = strtolower(trim($pet['category'] ?? ''));
+
+    $defaultImages = [
+        'dog'   => 'defaults/dog.png',
+        'cat'   => 'defaults/cat.png',
+        'bird'  => 'defaults/bird.png',
+        'birds' => 'defaults/bird.png',
+        'fish'  => 'defaults/fish.png',
+    ];
+
+    if (isset($defaultImages[$category])) {
+        $defaultFile = $defaultImages[$category];
+        if (file_exists($baseUploads . $defaultFile)) {
+            return '../uploads/' . $defaultFile;
+        }
+    }
+
+    // 3. No image available → return null (caller will show paw icon)
+    return null;
+}
 ?>

@@ -343,8 +343,11 @@ try {
                     <?php foreach ($recentAdoptions as $adoption): ?>
                         <li class="adoption-item">
                             <div class="adoption-image">
-                                <?php if (!empty($adoption['photo_path']) && file_exists('../uploads/' . $adoption['photo_path'])): ?>
-                                    <img src="../uploads/<?php echo htmlspecialchars($adoption['photo_path']); ?>" alt="Pet photo">
+                                <?php 
+                                    $photoSrc = getPetPhotoSrc($adoption);
+                                    if ($photoSrc): 
+                                ?>
+                                    <img src="<?php echo $photoSrc; ?>" alt="Pet photo">
                                 <?php else: ?>
                                     <i class="fas fa-paw no-image"></i>
                                 <?php endif; ?>

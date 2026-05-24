@@ -9,6 +9,10 @@ if (isAdmin()) {
 }
 
 $userPets = getUserPets($_SESSION['user_id']);
+
+// Residency status for banner
+$residentStatus = getResidencyStatus($_SESSION['user_id']);
+$showResidencyBanner = !in_array($residentStatus, ['verified']);
 ?>
 
 <?php include '../includes/header.php'; ?>
@@ -518,6 +522,30 @@ $adoptionPets = $stmt->fetch()['total'];
         </div>
     </section>
 
+    <?php if ($showResidencyBanner): ?>
+    <div style="background: linear-gradient(90deg, #fef3c7, #fffbeb); border: 1px solid #fde047; border-radius: var(--radius-xl); padding: 16px 20px; margin-bottom: var(--spacing-lg); display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:220px;">
+            <div style="font-weight:800; color:#92400e; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-id-card"></i> 
+                <?php echo $residentStatus === 'pending' ? 'Residency verification in progress' : 'Verify you are from Pila, Laguna'; ?>
+            </div>
+            <div style="font-size:13px; color:#854d0e; margin-top:2px;">
+                <?php if ($residentStatus === 'pending'): ?>
+                    Your document is being reviewed by an admin.
+                <?php elseif ($residentStatus === 'rejected'): ?>
+                    Your previous submission was rejected. Please re-upload a clearer document.
+                <?php else: ?>
+                    Unlock full features (pet registration, adoption) by verifying your residency.
+                <?php endif; ?>
+            </div>
+        </div>
+        <a href="verify_residency.php" class="btn-primary-cta" style="background:#1a73e8; white-space:nowrap; padding:10px 18px; font-size:14px;">
+            <i class="fas fa-upload"></i> 
+            <?php echo $residentStatus === 'pending' ? 'Check Status' : 'Upload Proof Now'; ?>
+        </a>
+    </div>
+    <?php endif; ?>
+
     <div class="dashboard-section-head">
         <div>
             <h2>At a glance</h2>
@@ -559,8 +587,11 @@ $adoptionPets = $stmt->fetch()['total'];
             <?php foreach ($userPets as $pet): ?>
                 <div class="pet-card">
                     <div class="pet-image">
-                        <?php if (!empty($pet['photo_path']) && file_exists('../uploads/' . $pet['photo_path'])): ?>
-                            <img src="../uploads/<?php echo htmlspecialchars($pet['photo_path']); ?>" alt="<?php echo htmlspecialchars($pet['name']); ?>">
+                        <?php 
+                            $photoSrc = getPetPhotoSrc($pet);
+                            if ($photoSrc): 
+                        ?>
+                            <img src="<?php echo $photoSrc; ?>" alt="<?php echo htmlspecialchars($pet['name']); ?>">
                         <?php else: ?>
                             <div class="no-image">
                                 <i class="fas fa-paw"></i>

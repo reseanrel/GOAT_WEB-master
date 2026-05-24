@@ -769,23 +769,8 @@ if ($currentUser) {
         <?php else: ?>
             <?php foreach ($adoptionPets as $pet): ?>
                 <?php
-                    $photoPath = isset($pet['photo_path']) ? (string)$pet['photo_path'] : '';
-                    $photoOk = $photoPath !== '';
-
-                    // photo_path may be a filename (e.g. pet_1.png) OR a path/fragment (e.g. uploads/pet_1.png or static/uploads/...)
-                    if ($photoOk) {
-                        $photoSrc = $photoPath;
-
-                        if (str_starts_with($photoSrc, 'uploads/')) {
-                            $photoSrc = '../' . $photoSrc;
-                        } elseif (str_starts_with($photoSrc, 'static/uploads/')) {
-                            $photoSrc = '../' . $photoSrc;
-                        } elseif (str_contains($photoSrc, '/uploads/')) {
-                            $photoSrc = '../' . ltrim($photoSrc, './');
-                        } else {
-                            $photoSrc = '../uploads/' . $photoSrc;
-                        }
-                    }
+                    $photoSrc = getPetPhotoSrc($pet);
+                    $photoOk = !empty($photoSrc);
 
                     $category = $pet['category'] ?? 'PET';
                     $petType = $pet['pet_type'] ?? 'Unknown';

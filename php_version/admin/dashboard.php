@@ -1084,9 +1084,8 @@ try {
                         <div class="pending-list">
                             <?php foreach ($recentPending as $pet): ?>
                                 <?php
-                                    $photo = $pet['photo_path'] ?? ($pet['photo_url'] ?? '');
-                                    $photo = is_string($photo) ? $photo : '';
-                                    $photoOk = !empty($photo) && file_exists('../uploads/' . $photo);
+                                    $photoSrc = getPetPhotoSrc($pet);
+                                    $photoOk = !empty($photoSrc);
 
                                     $category = (string)($pet['category'] ?? 'PET');
                                     $typeClass = 'pending-type-other';
@@ -1100,7 +1099,7 @@ try {
                                 <div class="pending-item">
                                     <div class="pending-media">
                                         <?php if ($photoOk): ?>
-                                            <img src="../uploads/<?php echo htmlspecialchars($photo); ?>" alt="<?php echo htmlspecialchars((string)$pet['name']); ?>">
+                                            <img src="<?php echo $photoSrc; ?>" alt="<?php echo htmlspecialchars((string)$pet['name']); ?>">
                                         <?php else: ?>
                                             <div class="media-fallback">
                                                 <i class="fas fa-paw"></i>

@@ -13,14 +13,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'], $_POST['use
         $stmt = $conn->prepare("UPDATE users SET archived = 1, archived_at = NOW() WHERE id = ?");
         $stmt->execute([$userId]);
         $_SESSION['success'] = 'User archived successfully!';
+        header('Location: manage_users.php');
+        exit();
     } elseif ($_POST['action'] === 'unarchive') {
         $stmt = $conn->prepare("UPDATE users SET archived = 0, archived_at = NULL WHERE id = ?");
         $stmt->execute([$userId]);
         $_SESSION['success'] = 'User unarchived successfully!';
+        header('Location: manage_users.php');
+        exit();
+    } elseif ($_POST['action'] === 'approve_residency') {
+        try {
+            $stmt = $conn->prepare("UPDATE users SET residency_status = 'verified', residency_verified_at = NOW(), residency_verified_by = ?, residency_rejection_reason = NULL WHERE id = ?");
+            $stmt->execute([$_SESSION['user_id'], $userId]);
+            $_SESSION['success'] = 'Residency approved for this user.';
+        } catch (PDOException $e) {
+            $_SESSION['error'] = 'Migration not run yet. Please run the residency migration first.';
+        }
+        header('Location: user_details.php?id=' . $userId);
+        exit();
+    } elseif ($_POST['action'] === 'reject_residency') {
+        try {
+            $reason = sanitizeInput($_POST['rejection_reason'] ?? 'Document does not clearly prove residency in Pila, Laguna.');
+            $stmt = $conn->prepare("UPDATE users SET residency_status = 'rejected', residency_rejection_reason = ?, residency_verified_at = NULL, residency_verified_by = NULL WHERE id = ?");
+            $stmt->execute([$reason, $userId]);
+            $_SESSION['success'] = 'Residency rejected.';
+        } catch (PDOException $e) {
+            $_SESSION['error'] = 'Migration not run yet. Please run the residency migration first.';
+        }
+        header('Location: user_details.php?id=' . $userId);
+        exit();
     }
-
-    header('Location: manage_users.php');
-    exit();
 }
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
@@ -53,6 +75,13 @@ if (!$user) {
 
 $isArchived = !empty($user['archived']);
 $isAdminUser = !empty($user['is_admin']);
+
+// Residency info
+$residentStatus = $user['residency_status'] ?? 'unverified';
+$residentDoc = $user['residency_document'] ?? null;
+$residentRejectReason = $user['residency_rejection_reason'] ?? null;
+$residentVerifiedAt = $user['residency_verified_at'] ?? null;
+$residentVerifiedBy = $user['residency_verified_by'] ?? null;
 ?>
 
 <?php include '../includes/header.php'; ?>
@@ -475,6 +504,76 @@ $isAdminUser = !empty($user['is_admin']);
 
             <p class="action-note">
                 Archive changes apply immediately and can be reversed later.
+            </p>
+        </div>
+    </div>
+
+    <!-- Residency Verification Panel -->
+    <div class="detail-panel">
+        <div class="detail-panel-header">
+            <h2 class="detail-panel-title">
+                <i class="fas fa-id-card"></i>
+                Residency Verification (Pila, Laguna)
+            </h2>
+        </div>
+        <div class="detail-panel-body">
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
+                <?php
+                    $rBadge = 'status-active';
+                    $rText = ucfirst($residentStatus);
+                    if ($residentStatus === 'pending') $rBadge = 'status-pending';
+                    if ($residentStatus === 'verified') $rBadge = 'status-approved';
+                    if ($residentStatus === 'rejected') $rBadge = 'status-rejected';
+                ?>
+                <span class="status-badge <?php echo $rBadge; ?>" style="font-size:14px; padding:6px 14px;">
+                    <?php echo $rText; ?>
+                </span>
+                <?php if ($residentVerifiedAt): ?>
+                    <span style="font-size:13px; color:var(--color-text-secondary);">
+                        Verified <?php echo date('M j, Y', strtotime($residentVerifiedAt)); ?>
+                    </span>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($residentDoc): ?>
+                <div style="margin-bottom:16px;">
+                    <a href="../uploads/<?php echo htmlspecialchars($residentDoc); ?>" target="_blank" class="btn-action btn-view">
+                        <i class="fas fa-file"></i> View Submitted Document
+                    </a>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($residentStatus === 'rejected' && $residentRejectReason): ?>
+                <div style="background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:8px; color:#991b1b; margin-bottom:16px; font-size:14px;">
+                    <strong>Rejection Reason:</strong><br><?php echo nl2br(htmlspecialchars($residentRejectReason)); ?>
+                </div>
+            <?php endif; ?>
+
+            <div class="user-details-actions">
+                <?php if (in_array($residentStatus, ['pending', 'unverified', 'rejected'])): ?>
+                    <form method="POST" style="display:inline;">
+                        <input type="hidden" name="user_id" value="<?php echo (int)$user['id']; ?>">
+                        <input type="hidden" name="action" value="approve_residency">
+                        <button type="submit" class="btn-action btn-unarchive" onclick="return confirm('Approve this user as verified Pila resident?')">
+                            <i class="fas fa-check-circle"></i> Approve Residency
+                        </button>
+                    </form>
+                <?php endif; ?>
+
+                <?php if (in_array($residentStatus, ['pending', 'unverified', 'verified'])): ?>
+                    <form method="POST" style="display:inline; margin-left:8px;">
+                        <input type="hidden" name="user_id" value="<?php echo (int)$user['id']; ?>">
+                        <input type="hidden" name="action" value="reject_residency">
+                        <input type="text" name="rejection_reason" placeholder="Reason (optional)" style="width:180px; padding:6px 8px; font-size:12px; border:1px solid #d1d5db; border-radius:6px; margin-right:4px;">
+                        <button type="submit" class="btn-action btn-archive" onclick="return confirm('Reject this residency claim?')">
+                            <i class="fas fa-times-circle"></i> Reject
+                        </button>
+                    </form>
+                <?php endif; ?>
+            </div>
+
+            <p style="margin-top:12px; font-size:12px; color:var(--color-text-muted);">
+                Only approve if the document clearly shows the user's name and a Pila, Laguna address.
             </p>
         </div>
     </div>

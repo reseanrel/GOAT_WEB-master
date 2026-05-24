@@ -514,12 +514,14 @@
                 <?php if ($_SESSION['is_admin']): ?>
                     <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' && strpos($_SERVER['REQUEST_URI'], '/admin/') !== false ? 'active' : ''; ?>" href="/admin/dashboard.php"><i class="fas fa-tachometer-alt"></i>Dashboard</a></li>
                     <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'manage_pets.php' ? 'active' : ''; ?>" href="/admin/manage_pets.php"><i class="fas fa-paw"></i>Manage Pets</a></li>
+                    <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'verify_residents.php' ? 'active' : ''; ?>" href="/admin/verify_residents.php"><i class="fas fa-id-card"></i>Verify Residents</a></li>
                     <!-- Manage Users link removed from sidebar (admin dashboard only) -->
                     <li><a class="sidebar-link" href="/lost_pets.php"><i class="fas fa-search"></i>Lost Pets</a></li>
                     <li><a class="sidebar-link" href="/adoption.php"><i class="fas fa-heart"></i>Adoption</a></li>
                 <?php else: ?>
                     <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' && strpos($_SERVER['REQUEST_URI'], '/user/') !== false ? 'active' : ''; ?>" href="/user/dashboard.php"><i class="fas fa-home"></i>Dashboard</a></li>
-                    <li><a class="sidebar-link" href="/user/edit_profile.php"><i class="fas fa-user"></i>Profile</a></li>
+                     <li><a class="sidebar-link" href="/user/edit_profile.php"><i class="fas fa-user"></i>Profile</a></li>
+                     <li><a class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) == 'verify_residency.php' ? 'active' : ''; ?>" href="/user/verify_residency.php"><i class="fas fa-id-card"></i>Verify Residency</a></li>
                     <li><a class="sidebar-link" href="/lost_pets.php"><i class="fas fa-search"></i>Lost Pets</a></li>
                     <li><a class="sidebar-link" href="/adoption.php"><i class="fas fa-heart"></i>Adoption</a></li>
                 <?php endif; ?>
@@ -966,6 +968,7 @@
                         'dashboard': 'Dashboard',
                         'register_pet': 'Register New Pet',
                         'manage_pets': 'Manage Pets',
+                        'verify_residents': 'Verify Residents',
                         'lost_pets': 'Lost Pets',
                         'adoption': 'Pet Adoption'
                     };

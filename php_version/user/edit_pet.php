@@ -522,9 +522,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div style="display: grid; grid-template-columns: 180px 1fr; gap: 1.5rem; align-items: start;">
                         <div style="width: 180px; height: 180px; border-radius: 12px; border: 2px solid var(--border-color); overflow: hidden; background: var(--card-bg); display: flex; align-items: center; justify-content: center;">
                             <?php
-                            $photoOk = !empty($pet['photo_url']) && file_exists(dirname(__DIR__) . '/uploads/' . $pet['photo_url']);
-                            if ($photoOk) {
-                                echo '<img id="currentPhotoPreview" src="../uploads/' . htmlspecialchars($pet['photo_url'], ENT_QUOTES, 'UTF-8') . '" alt="Current pet photo" style="width: 100%; height: 100%; object-fit: cover;" />';
+                            $photoSrc = getPetPhotoSrc($pet);
+                            if ($photoSrc) {
+                                echo '<img id="currentPhotoPreview" src="' . $photoSrc . '" alt="Current pet photo" style="width: 100%; height: 100%; object-fit: cover;" />';
                             } else {
                                 echo '<i class="fas fa-paw" style="font-size: 54px; color: var(--text-secondary);"></i>';
                             }

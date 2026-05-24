@@ -414,8 +414,11 @@ foreach ($applications as $app) {
                     <div class="application-header">
                         <div class="pet-info">
                             <div class="pet-image">
-                                <?php if (!empty($app['photo_path']) && file_exists('../uploads/' . $app['photo_path'])): ?>
-                                    <img src="../uploads/<?php echo htmlspecialchars($app['photo_path']); ?>" alt="Pet photo">
+                                <?php 
+                                    $photoSrc = getPetPhotoSrc($app);
+                                    if ($photoSrc): 
+                                ?>
+                                    <img src="<?php echo $photoSrc; ?>" alt="Pet photo">
                                 <?php else: ?>
                                     <i class="fas fa-paw no-image"></i>
                                 <?php endif; ?>

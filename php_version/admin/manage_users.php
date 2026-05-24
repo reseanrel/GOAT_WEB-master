@@ -197,6 +197,7 @@ $stats = [
                         <th>User</th>
                         <th>Contact</th>
                         <th>Status</th>
+                        <th>Residency</th>
                         <th>Role</th>
                         <th>Actions</th>
                     </tr>
@@ -220,14 +221,26 @@ $stats = [
                                 <span class="status-badge status-<?php echo $user['archived'] ? 'archived' : 'active'; ?>">
                                     <?php echo $user['archived'] ? 'Archived' : 'Active'; ?>
                                 </span>
-                            </td>
-                            <td>
-                                <?php if ($user['is_admin']): ?>
-                                    <span class="admin-badge">Admin</span>
-                                <?php else: ?>
-                                    <span style="color: var(--color-text-secondary); font-size: 14px;">User</span>
-                                <?php endif; ?>
-                            </td>
+                             </td>
+                             <td>
+                                 <?php
+                                     $rs = $user['residency_status'] ?? 'unverified';
+                                     $rClass = 'status-active';
+                                     if ($rs === 'pending') $rClass = 'status-pending';
+                                     if ($rs === 'verified') $rClass = 'status-approved';
+                                     if ($rs === 'rejected') $rClass = 'status-rejected';
+                                 ?>
+                                 <span class="status-badge <?php echo $rClass; ?>">
+                                     <?php echo ucfirst($rs); ?>
+                                 </span>
+                             </td>
+                             <td>
+                                 <?php if ($user['is_admin']): ?>
+                                     <span class="admin-badge">Admin</span>
+                                 <?php else: ?>
+                                     <span style="color: var(--color-text-secondary); font-size: 14px;">User</span>
+                                 <?php endif; ?>
+                             </td>
                             <td>
                                 <div class="user-actions">
                                     <a href="user_details.php?id=<?php echo (int)$user['id']; ?>" class="btn-action btn-view">
