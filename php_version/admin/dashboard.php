@@ -1000,12 +1000,12 @@ try {
                 <div class="action-title">Manage Users</div>
                 <p class="action-description">View, archive, and manage user roles</p>
             </a>
-            <a href="manage_adoption_applications.php" class="action-card">
+            <a href="manage_pets.php" class="action-card">
                 <div class="action-icon">
-                    <i class="fas fa-hand-holding-heart"></i>
+                    <i class="fas fa-paw"></i>
                 </div>
-                <div class="action-title">Adoption Applications</div>
-                <p class="action-description">Review and finalize adoptions</p>
+                <div class="action-title">Manage Pets</div>
+                <p class="action-description">Review, approve, and manage all pets</p>
             </a>
         </div>
     </div>

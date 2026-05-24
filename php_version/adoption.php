@@ -713,6 +713,16 @@ if ($currentUser) {
 </style>
 
 <div class="adoption">
+    <?php if (isAdmin()): ?>
+    <div style="background: linear-gradient(90deg, #1a73e8, #4285f4); color: white; padding: 10px 20px; margin-bottom: 16px; border-radius: 8px; display: flex; align-items: center; gap: 12px; font-size: 14px;">
+        <i class="fas fa-shield-alt"></i>
+        <strong>Admin:</strong> You are viewing the public adoption listings.
+        <a href="admin/manage_adoption_applications.php" style="margin-left: auto; background: white; color: #1a73e8; padding: 6px 14px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 13px;">
+            Manage Adoption Applications →
+        </a>
+    </div>
+    <?php endif; ?>
+
     <section class="adoption-hero" aria-label="Pet Adoption hero">
         <div class="adoption-hero-inner">
             <div>

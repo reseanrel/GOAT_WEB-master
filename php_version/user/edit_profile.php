@@ -64,6 +64,8 @@ $contactVal = $user['contact_number'] ?? '';
 $addressVal = $user['address'] ?? '';
 $emailVal = $user['email'] ?? '';
 
+$residentStatus = getResidencyStatus($uid);
+
 include '../includes/header.php';
 ?>
 
@@ -478,6 +480,38 @@ include '../includes/header.php';
                     </a>
                 </div>
             </form>
+        </div>
+
+        <!-- Residency Verification Section -->
+        <div class="profile-card" style="margin-top: var(--spacing-xl);">
+            <div class="profile-card-head">
+                <h2 class="profile-card-title">
+                    <i class="fas fa-id-card"></i>
+                    Residency Verification
+                </h2>
+                <p class="profile-card-hint">Confirm you are a resident of Pila, Laguna.</p>
+            </div>
+
+            <?php
+                $statusClass = 'status-unverified';
+                $statusText = 'Not Verified';
+                $statusIcon = 'fa-question-circle';
+                if ($residentStatus === 'pending') { $statusClass = 'status-pending'; $statusText = 'Pending Review'; $statusIcon = 'fa-clock'; }
+                if ($residentStatus === 'verified') { $statusClass = 'status-approved'; $statusText = 'Verified Resident'; $statusIcon = 'fa-check-circle'; }
+                if ($residentStatus === 'rejected') { $statusClass = 'status-rejected'; $statusText = 'Rejected'; $statusIcon = 'fa-times-circle'; }
+            ?>
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+                <span class="status-badge <?php echo $statusClass; ?>" style="font-size:14px; padding:8px 16px;">
+                    <i class="fas <?php echo $statusIcon; ?>"></i> <?php echo $statusText; ?>
+                </span>
+            </div>
+
+            <a href="verify_residency.php" class="btn-save" style="display:inline-flex; width:auto; padding:10px 20px;">
+                <i class="fas fa-id-card"></i> Manage Residency Verification
+            </a>
+            <p style="font-size:13px; color:var(--color-text-secondary); margin-top:10px;">
+                Upload proof of residency (Barangay Certificate, Cedula, etc.) to unlock full features.
+            </p>
         </div>
     </div>
 </div>
