@@ -130,10 +130,12 @@ function getUserResidencyInfo($userId) {
 }
 
 /**
- * Get the best available photo source for a pet.
- * Falls back to category-specific default images if no custom photo.
+ * Get the photo source for a pet.
+ * Returns the uploaded photo if present.
+ * Returns null (display nothing) if the user did not upload a photo.
+ * No default files are used.
  */
-function getPetPhotoSrc($pet, $useDefaults = true) {
+function getPetPhotoSrc($pet) {
     $baseUploads = dirname(__DIR__) . '/uploads/';
 
     if (!empty($pet['photo_path']) || !empty($pet['photo_url'])) {
@@ -142,23 +144,6 @@ function getPetPhotoSrc($pet, $useDefaults = true) {
 
         if (file_exists($fullPath)) {
             return '../uploads/' . htmlspecialchars($filename, ENT_QUOTES, 'UTF-8');
-        }
-    }
-
-    if ($useDefaults) {
-        $category = strtolower(trim($pet['category'] ?? ''));
-        $defaultImages = [
-            'dog'   => 'defaults/dog.png',
-            'cat'   => 'defaults/cat.png',
-            'bird'  => 'defaults/bird.png',
-            'birds' => 'defaults/bird.png',
-            'fish'  => 'defaults/fish.png',
-        ];
-        if (isset($defaultImages[$category])) {
-            $defaultFile = $defaultImages[$category];
-            if (file_exists($baseUploads . $defaultFile)) {
-                return '../uploads/' . $defaultFile;
-            }
         }
     }
 

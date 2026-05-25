@@ -154,7 +154,7 @@ try {
         JOIN users u ON p.owner_id = u.id
         WHERE p.status = 'pending' AND p.archived = 0
         ORDER BY p.registered_on DESC
-        LIMIT 5
+        LIMIT 8
     ");
     $stmt->execute();
     $recentPending = $stmt->fetchAll();
@@ -360,8 +360,8 @@ try {
     /* Pending cards - align with Lost Pets / Adoption (image-first cards) */
     .pending-list {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 18px;
         align-items: stretch;
     }
 
@@ -374,7 +374,7 @@ try {
         transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
         display: flex;
         flex-direction: column;
-        min-height: 380px;
+        min-height: 400px;
     }
 
     .pending-item:hover {
@@ -384,7 +384,7 @@ try {
     }
 
     .pending-media {
-        height: 170px;
+        height: 180px;
         position: relative;
         background: #fff;
     }
@@ -868,15 +868,6 @@ try {
         border-color: rgba(245,158,11,0.25);
     }
 
-    .pending-list {
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    }
-
-    .pending-item {
-        border-radius: 22px;
-        min-height: 480px;
-    }
-
     .pending-review-btn {
         background: #f59e0b;
     }
@@ -1145,7 +1136,7 @@ try {
         </div>
     </div>
 </div>
-
+ 
 <?php include '../includes/footer.php'; ?>
 
 <script>
