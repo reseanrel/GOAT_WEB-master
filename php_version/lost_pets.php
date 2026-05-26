@@ -10,13 +10,44 @@ $conn = $db->getConnection();
 $perPage = 15;
 $currentPage = max(1, (int)($_GET['page'] ?? 1));
 
-// Count total lost pets
+// Count total lost pets (with optional search/filter)
+$q = trim((string)($_GET['q'] ?? ''));
+$categoryFilter = trim((string)($_GET['category'] ?? ''));
+$petTypeFilter = trim((string)($_GET['pet_type'] ?? ''));
+
 try {
-    $countSql = "
-        SELECT COUNT(*) FROM pets p
-        WHERE p.lost = 1 AND p.archived = 0 AND p.status = 'approved' AND p.deceased = 0
-    ";
-    $totalLost = (int)$conn->query($countSql)->fetchColumn();
+    $baseWhere = "p.lost = 1 AND p.archived = 0 AND p.status = 'approved' AND p.deceased = 0";
+    $whereSql = $baseWhere;
+    $params = [];
+
+    if ($q !== '') {
+        $whereSql .= " AND (p.name LIKE :q OR p.pet_type LIKE :q OR p.color LIKE :q OR u.full_name LIKE :q OR IFNULL(u.address, '') LIKE :q)";
+        $params[':q'] = '%' . $q . '%';
+    }
+    if ($categoryFilter !== '') {
+        $whereSql .= " AND p.category = :category";
+        $params[':category'] = $categoryFilter;
+    }
+    if ($petTypeFilter !== '') {
+        $whereSql .= " AND p.pet_type = :pet_type";
+        $params[':pet_type'] = $petTypeFilter;
+    }
+
+    $countSql = "SELECT COUNT(*) FROM pets p LEFT JOIN users u ON p.owner_id = u.id WHERE " . $whereSql;
+    $stmt = $conn->prepare($countSql);
+    $stmt->execute($params);
+    $totalLost = (int)$stmt->fetchColumn();
+
+    // DEBUG: when a query is supplied, output SQL and params to help debugging (temporary)
+    if ($q !== '') {
+        error_log("[DEBUG lost_pets] SQL: " . $countSql);
+        error_log("[DEBUG lost_pets] Params: " . json_encode($params));
+        echo '<div style="background:#fee; padding:12px; border:1px solid #f99; margin:12px 0;">';
+        echo '<strong>DEBUG:</strong><br><pre>' . htmlspecialchars($countSql) . '</pre>';
+        echo '<pre>' . htmlspecialchars(json_encode($params, JSON_PRETTY_PRINT)) . '</pre>';
+        echo '</div>';
+    }
+
     $totalPages = max(1, (int)ceil($totalLost / $perPage));
     $currentPage = min($currentPage, $totalPages);
     $offset = ($currentPage - 1) * $perPage;
@@ -27,17 +58,22 @@ try {
     $offset = 0;
 }
 
-// Get paged lost pets
+// Get paged lost pets (apply same filters)
 try {
-    $stmt = $conn->prepare("
+    $selectSql = "
         SELECT p.*, p.photo_url AS photo_path, u.full_name as owner_name, u.email as owner_email,
                u.contact_number as owner_contact, u.address as last_seen_location
         FROM pets p
-        JOIN users u ON p.owner_id = u.id
-        WHERE p.lost = 1 AND p.archived = 0 AND p.status = 'approved' AND p.deceased = 0
+        LEFT JOIN users u ON p.owner_id = u.id
+        WHERE " . $whereSql . "
         ORDER BY p.registered_on DESC
         LIMIT :limit OFFSET :offset
-    ");
+    ";
+    $stmt = $conn->prepare($selectSql);
+    // bind filter params
+    foreach ($params as $k => $v) {
+        $stmt->bindValue($k, $v, PDO::PARAM_STR);
+    }
     $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
@@ -869,6 +905,22 @@ if ($currentUser) {
             <h2>Reported Lost Pets</h2>
             <p>Image-first cards showing key details so you can contact the owner quickly.</p>
         </div>
+
+        <form method="GET" style="display:flex; gap:8px; align-items:center; margin-left:auto;">
+            <input type="search" name="q" value="<?php echo htmlspecialchars($q); ?>" placeholder="Search name, type, color, owner..." class="modal-control" style="width:260px;" />
+            <select name="category" class="modal-control" style="width:140px;">
+                <option value="">All Categories</option>
+                <option value="Dog" <?php echo $categoryFilter === 'Dog' ? 'selected' : ''; ?>>Dog</option>
+                <option value="Cat" <?php echo $categoryFilter === 'Cat' ? 'selected' : ''; ?>>Cat</option>
+                <option value="Bird" <?php echo $categoryFilter === 'Bird' ? 'selected' : ''; ?>>Bird</option>
+                <option value="Other" <?php echo $categoryFilter === 'Other' ? 'selected' : ''; ?>>Other</option>
+            </select>
+            <input type="text" name="pet_type" value="<?php echo htmlspecialchars($petTypeFilter); ?>" placeholder="Breed / Type" class="modal-control" style="width:160px;" />
+            <button type="submit" class="btn-primary-cta" style="padding:8px 12px; height:40px;">Search</button>
+            <?php if ($q !== '' || $categoryFilter !== '' || $petTypeFilter !== ''): ?>
+                <a href="lost_pets.php" class="btn btn-link" style="margin-left:6px;">Clear</a>
+            <?php endif; ?>
+        </form>
     </div>
 
     <div class="lost-pets-grid">
@@ -960,31 +1012,44 @@ if ($currentUser) {
          <?php endif; ?>
      </div>
 
-     <?php if ($totalLost > 0 && $totalPages > 1): ?>
-     <div class="pagination" aria-label="Pagination for reported lost pets">
-         <?php if ($currentPage > 1): ?>
-             <a href="?page=<?= $currentPage - 1 ?>" class="page-link prev">← Prev</a>
-         <?php endif; ?>
+<?php if ($totalLost > 0 && $totalPages > 1): ?>
+      <div class="pagination" aria-label="Pagination for reported lost pets">
+          <?php
+          // Preserve search query params when paginating
+          $queryBase = http_build_query(array_filter([
+              'q' => $q !== '' ? $q : null,
+              'category' => $categoryFilter !== '' ? $categoryFilter : null,
+              'pet_type' => $petTypeFilter !== '' ? $petTypeFilter : null,
+          ]));
 
-         <?php
-         $start = max(1, $currentPage - 2);
-         $end = min($totalPages, $currentPage + 2);
-         if ($start > 1) echo '<span class="page-ellipsis">…</span>';
-         for ($i = $start; $i <= $end; $i++) {
-             if ($i === $currentPage) {
-                 echo '<span class="page-link active">' . $i . '</span>';
-             } else {
-                 echo '<a href="?page=' . $i . '" class="page-link">' . $i . '</a>';
-             }
-         }
-         if ($end < $totalPages) echo '<span class="page-ellipsis">…</span>';
-         ?>
+          $makePageLink = function($page) use ($queryBase) {
+              $qs = $queryBase !== '' ? $queryBase . '&page=' . $page : 'page=' . $page;
+              return '?' . $qs;
+          };
 
-         <?php if ($currentPage < $totalPages): ?>
-             <a href="?page=<?= $currentPage + 1 ?>" class="page-link next">Next →</a>
-         <?php endif; ?>
-     </div>
-     <?php endif; ?>
+          if ($currentPage > 1): ?>
+              <a href="<?php echo $makePageLink($currentPage - 1); ?>" class="page-link prev">← Prev</a>
+          <?php endif; ?>
+
+          <?php
+          $start = max(1, $currentPage - 2);
+          $end = min($totalPages, $currentPage + 2);
+          if ($start > 1) echo '<span class="page-ellipsis">…</span>';
+          for ($i = $start; $i <= $end; $i++) {
+              if ($i === $currentPage) {
+                  echo '<span class="page-link active">' . $i . '</span>';
+              } else {
+                  echo '<a href="' . $makePageLink($i) . '" class="page-link">' . $i . '</a>';
+              }
+          }
+          if ($end < $totalPages) echo '<span class="page-ellipsis">…</span>';
+          ?>
+
+          <?php if ($currentPage < $totalPages): ?>
+              <a href="<?php echo $makePageLink($currentPage + 1); ?>" class="page-link next">Next →</a>
+          <?php endif; ?>
+      </div>
+      <?php endif; ?>
  </div>
  
  <!-- Report Lost Pet Modal (primary CTA wiring) -->

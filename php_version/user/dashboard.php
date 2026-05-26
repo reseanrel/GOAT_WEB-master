@@ -584,17 +584,7 @@ $adoptionPets = $stmt->fetch()['total'];
             </div>
             <h2 class="empty-state-title">No pets registered yet</h2>
             <p class="empty-state-text">Start building your pet family by registering your first companion!</p>
-            <?php if ($canRegisterPet): ?>
-            <a href="register_pet.php" class="btn-primary-cta" style="margin:0 auto; width: auto; min-width: 240px;">
-                <i class="fas fa-plus"></i>
-                Register Your First Pet
-            </a>
-            <?php else: ?>
-            <a href="verify_residency.php" class="btn-primary-cta" style="margin:0 auto; width: auto; min-width: 240px; background:#1a73e8;">
-                <i class="fas fa-id-card"></i>
-                Verify Residency to Register
-            </a>
-            <?php endif; ?>
+
         </div>
     <?php else: ?>
         <div class="pets-grid">

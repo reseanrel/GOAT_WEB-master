@@ -136,17 +136,23 @@ function getUserResidencyInfo($userId) {
  * No default files are used.
  */
 function getPetPhotoSrc($pet) {
-    $baseUploads = dirname(__DIR__) . '/uploads/';
-
-    if (!empty($pet['photo_path']) || !empty($pet['photo_url'])) {
-        $filename = $pet['photo_path'] ?? $pet['photo_url'];
-        $fullPath = $baseUploads . $filename;
-
-        if (file_exists($fullPath)) {
-            return '../uploads/' . htmlspecialchars($filename, ENT_QUOTES, 'UTF-8');
-        }
+    // Return a URL suitable for the webserver. Use root-relative /uploads/... so dev server and production resolve the same.
+    $filename = $pet['photo_path'] ?? $pet['photo_url'] ?? null;
+    if ($filename) {
+        // Encode filename portion safely but keep path separators if any
+        return '/uploads/' . rawurlencode($filename);
     }
 
-    return null;
+    // No uploaded photo — try category fallback images
+    $category = strtolower($pet['category'] ?? '');
+    $defaults = [
+        'dog' => '/uploads/defaults/dog.png',
+        'cat' => '/uploads/defaults/cat.png',
+        'bird' => '/uploads/defaults/bird.png',
+        'fish' => '/uploads/defaults/fish.png',
+        'other' => '/uploads/defaults/dog.png'
+    ];
+
+    return $defaults[$category] ?? '/uploads/defaults/dog.png';
 }
 ?>
