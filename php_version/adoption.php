@@ -21,8 +21,12 @@ try {
     $params = [];
 
     if ($q !== '') {
-        $whereSql .= " AND (p.name LIKE :q OR p.pet_type LIKE :q OR p.color LIKE :q OR u.full_name LIKE :q)";
-        $params[':q'] = '%' . $q . '%';
+        $whereSql .= " AND (p.name LIKE :q_name OR p.pet_type LIKE :q_type OR p.color LIKE :q_color OR u.full_name LIKE :q_owner)";
+        $searchTerm = '%' . $q . '%';
+        $params[':q_name'] = $searchTerm;
+        $params[':q_type'] = $searchTerm;
+        $params[':q_color'] = $searchTerm;
+        $params[':q_owner'] = $searchTerm;
     }
     if ($categoryFilter !== '') {
         $whereSql .= " AND p.category = :category";

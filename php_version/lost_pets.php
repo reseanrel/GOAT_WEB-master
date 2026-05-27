@@ -21,8 +21,13 @@ try {
     $params = [];
 
     if ($q !== '') {
-        $whereSql .= " AND (p.name LIKE :q OR p.pet_type LIKE :q OR p.color LIKE :q OR u.full_name LIKE :q OR IFNULL(u.address, '') LIKE :q)";
-        $params[':q'] = '%' . $q . '%';
+        $whereSql .= " AND (p.name LIKE :q_name OR p.pet_type LIKE :q_type OR p.color LIKE :q_color OR u.full_name LIKE :q_owner OR IFNULL(u.address, '') LIKE :q_address)";
+        $searchTerm = '%' . $q . '%';
+        $params[':q_name'] = $searchTerm;
+        $params[':q_type'] = $searchTerm;
+        $params[':q_color'] = $searchTerm;
+        $params[':q_owner'] = $searchTerm;
+        $params[':q_address'] = $searchTerm;
     }
     if ($categoryFilter !== '') {
         $whereSql .= " AND p.category = :category";
@@ -38,15 +43,6 @@ try {
     $stmt->execute($params);
     $totalLost = (int)$stmt->fetchColumn();
 
-    // DEBUG: when a query is supplied, output SQL and params to help debugging (temporary)
-    if ($q !== '') {
-        error_log("[DEBUG lost_pets] SQL: " . $countSql);
-        error_log("[DEBUG lost_pets] Params: " . json_encode($params));
-        echo '<div style="background:#fee; padding:12px; border:1px solid #f99; margin:12px 0;">';
-        echo '<strong>DEBUG:</strong><br><pre>' . htmlspecialchars($countSql) . '</pre>';
-        echo '<pre>' . htmlspecialchars(json_encode($params, JSON_PRETTY_PRINT)) . '</pre>';
-        echo '</div>';
-    }
 
     $totalPages = max(1, (int)ceil($totalLost / $perPage));
     $currentPage = min($currentPage, $totalPages);
