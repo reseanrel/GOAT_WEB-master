@@ -136,14 +136,11 @@ function getUserResidencyInfo($userId) {
  * No default files are used.
  */
 function getPetPhotoSrc($pet) {
-    // Return a URL suitable for the webserver. Use root-relative /uploads/... so dev server and production resolve the same.
     $filename = $pet['photo_path'] ?? $pet['photo_url'] ?? null;
-    if ($filename) {
-        // Encode filename portion safely but keep path separators if any
+    if ($filename && !preg_match('#^https?://#i', $filename)) {
         return '/uploads/' . rawurlencode($filename);
     }
 
-    // No uploaded photo — try category fallback images
     $category = strtolower($pet['category'] ?? '');
     $defaults = [
         'dog' => '/uploads/defaults/dog.png',
